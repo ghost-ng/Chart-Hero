@@ -11,7 +11,7 @@ build:
   script:
     - tar xzf node_modules.tar.gz
     - chmod +x node_modules/@esbuild/*/bin/* node_modules/@rollup/*/*.node node_modules/lightningcss-linux-x64-gnu/*.node node_modules/@tailwindcss/oxide-linux-x64-gnu/*.node 2>/dev/null || true
-    - npx tsc -b && npx vite build --base=/
+    - ./node_modules/.bin/tsc -b && ./node_modules/.bin/vite build --base=/
   artifacts:
     paths:
       - dist/
@@ -23,7 +23,7 @@ pages:
   script:
     - tar xzf node_modules.tar.gz
     - chmod +x node_modules/@esbuild/*/bin/* node_modules/@rollup/*/*.node node_modules/lightningcss-linux-x64-gnu/*.node node_modules/@tailwindcss/oxide-linux-x64-gnu/*.node 2>/dev/null || true
-    - npx tsc -b && npx vite build --base=/
+    - ./node_modules/.bin/tsc -b && ./node_modules/.bin/vite build --base=/
     # GitLab Pages requires output in 'public/' directory
     - rm -rf public
     - mv dist public
