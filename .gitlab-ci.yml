@@ -1,24 +1,7 @@
-stages:
-  - build
-  - deploy
-
 variables:
   NODE_VERSION: "20"
 
-build:
-  stage: build
-  image: node:${NODE_VERSION}
-  script:
-    - tar xzf node_modules.tar.gz
-    - chmod +x node_modules/@esbuild/*/bin/* node_modules/@rollup/*/*.node node_modules/lightningcss-linux-x64-gnu/*.node node_modules/@tailwindcss/oxide-linux-x64-gnu/*.node 2>/dev/null || true
-    - node node_modules/typescript/bin/tsc -b && node node_modules/vite/bin/vite.js build --base=/
-  artifacts:
-    paths:
-      - dist/
-    expire_in: 1 hour
-
 pages:
-  stage: deploy
   image: node:${NODE_VERSION}
   script:
     - tar xzf node_modules.tar.gz
@@ -35,19 +18,20 @@ pages:
 
 # DEPENDENCY MANAGEMENT:
 # node_modules.tar.gz is committed to the repo so CI doesn't need registry access.
-# The tarball includes both Windows and Linux native binaries (rollup, esbuild,
-# lightningcss, tailwindcss/oxide) so it works cross-platform.
+# The tarball contains Linux-x64 native binaries only (not Windows) to keep
+# the size down (~47 MB vs ~68 MB).
 #
 # To update dependencies:
 #   1. Edit package.json locally
-#   2. Run: bash scripts/bundle-deps.sh   (installs deps + Linux native binaries)
-#   3. Commit the updated node_modules.tar.gz alongside package.json/package-lock.json
+#   2. Run: bash scripts/bundle-deps.sh   (creates tarball with Linux binaries)
+#   3. Run: npm ci                         (restores Windows binaries for local dev)
+#   4. Commit the updated node_modules.tar.gz alongside package.json/package-lock.json
 #
 # PERMISSIONS:
-# Windows tarballs don't preserve Unix executable bits. The chmod line above
-# restores +x on native binaries (esbuild, rollup, lightningcss, tailwindcss/oxide) after extraction.
+# Windows-created tarballs don't preserve Unix executable bits. The chmod line
+# restores +x on native binaries (esbuild, rollup, lightningcss, tailwindcss/oxide).
 #
 # BASE PATH:
-# vite.config.ts has base: '/Chart-Hero/' for GitHub Pages.
+# vite.config.ts has base: '/chart-hero/' for GitHub Pages.
 # GitLab Pages uses --base=/ to override the base path at build time,
 # so assets are served from the root (e.g. https://yoursite.gitlab.io/).
