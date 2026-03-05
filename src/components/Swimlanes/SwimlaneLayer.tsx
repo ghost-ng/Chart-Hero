@@ -312,7 +312,7 @@ const MatrixCornerHandle: React.FC<MatrixCornerHandleProps> = ({
         document.body.style.userSelect = '';
       };
 
-      document.body.style.cursor = 'move';
+      document.body.style.cursor = 'var(--cursor-move)';
       document.body.style.userSelect = 'none';
       document.addEventListener('mousemove', onMouseMove);
       document.addEventListener('mouseup', onMouseUp);
@@ -331,7 +331,7 @@ const MatrixCornerHandle: React.FC<MatrixCornerHandleProps> = ({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        cursor: 'move',
+        cursor: 'var(--cursor-move)',
         pointerEvents: 'auto',
         zIndex: 11,
         backgroundColor: 'transparent',

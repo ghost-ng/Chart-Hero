@@ -12,6 +12,7 @@ import imgDrag from './cursor_drag.png';
 import imgCrosshair from './cursor_crosshair.png';
 import imgElbowMove from './cursor_elbow_move.png';
 import imgOpenHand from './open_hand.png';
+import imgMove from './move_main.png';
 
 // -- Ready-to-use CSS cursor value strings --------------------------------
 
@@ -35,3 +36,6 @@ export const CURSOR_OPEN_HAND = `url(${imgOpenHand}) 14 14, grab`;
 
 /** Elbow-move — drag-to-cycle connector type on edge midpoint (32×32). */
 export const CURSOR_ELBOW_MOVE = `url(${imgElbowMove}) 16 16, grab`;
+
+/** Move — dragging/moving containers (swimlane corner handle, etc.). */
+export const CURSOR_MOVE = `url(${imgMove}) 14 14, move`;

@@ -89,6 +89,7 @@ input[type="button"] {
 .cursor-grabbing { cursor: var(--cursor-drag-active) !important; }
 .cursor-default { cursor: var(--cursor-default) !important; }
 .cursor-crosshair { cursor: var(--cursor-crosshair) !important; }
+.cursor-move    { cursor: var(--cursor-move) !important; }
 
 /* Toast slide-up animation */
 @keyframes slideUp {
@@ -122,6 +123,7 @@ input[type="button"] {
   --cursor-crosshair: url('../assets/cursors/cursor_crosshair.png') 14 14, crosshair;
   --cursor-open-hand: url('../assets/cursors/open_hand.png') 14 14, grab;
   --cursor-elbow-move: url('../assets/cursors/cursor_elbow_move.png') 16 16, grab;
+  --cursor-move: url('../assets/cursors/move_main.png') 14 14, move;
 }
 
 /* Force ReactFlow above swimlane header layer (z:1) so nodes always render on top.
