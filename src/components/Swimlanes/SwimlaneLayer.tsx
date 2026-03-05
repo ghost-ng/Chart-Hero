@@ -813,7 +813,7 @@ const SwimlaneHeaderLayerInner: React.FC = () => {
   return (
     <div
       className="absolute inset-0 pointer-events-none overflow-hidden"
-      style={{ zIndex: 2 }}
+      style={{ zIndex: 1 }}
     >
       <div
         style={{
