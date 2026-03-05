@@ -880,7 +880,7 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
         minHeight={30}
         keepAspectRatio={isCircle}
         lineStyle={{ borderColor: selectionColor, borderWidth: selectionThickness * 0.5 }}
-        handleStyle={{ width: 8, height: 8, borderRadius: 4, backgroundColor: 'white', border: `${Math.max(1, selectionThickness * 0.75)}px solid ${selectionColor}` }}
+        handleStyle={{ width: 12, height: 12, borderRadius: 6, backgroundColor: 'white', border: `${Math.max(1.5, selectionThickness)}px solid ${selectionColor}`, zIndex: 50 }}
         onResize={(_event, params) => {
           updateNodeData(id, { width: params.width, height: params.height });
           // Propagate resize to all other selected nodes

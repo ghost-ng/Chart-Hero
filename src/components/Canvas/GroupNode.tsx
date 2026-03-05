@@ -230,11 +230,12 @@ const GroupNode: React.FC<NodeProps> = ({ id, data, selected }) => {
         minHeight={80}
         lineStyle={{ borderColor: selectionColor, borderWidth: 1 }}
         handleStyle={{
-          width: 8,
-          height: 8,
-          borderRadius: 4,
+          width: 12,
+          height: 12,
+          borderRadius: 6,
           backgroundColor: 'white',
-          border: `1.5px solid ${selectionColor}`,
+          border: `2px solid ${selectionColor}`,
+          zIndex: 50,
         }}
         onResize={(_event, params) => {
           updateNodeData(id, { width: params.width, height: params.height });
