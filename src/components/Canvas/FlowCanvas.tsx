@@ -1408,6 +1408,7 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
       {hasLanes && <SwimlaneHeaderLayer />}
 
       <ReactFlow
+        style={{ position: 'relative', zIndex: 2 }}
         nodes={visibleNodes}
         edges={visibleEdges}
         onNodesChange={presentationMode ? undefined : onNodesChange}
