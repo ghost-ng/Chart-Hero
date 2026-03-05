@@ -575,6 +575,7 @@ const SwimlaneLayer: React.FC = () => {
     >
       {/* This inner div transforms with the ReactFlow viewport */}
       <div
+        data-swimlane-viewport
         style={{
           position: 'absolute',
           transformOrigin: '0 0',
@@ -874,6 +875,7 @@ const SwimlaneHeaderLayerInner: React.FC = () => {
       style={{ zIndex: 3 }}
     >
       <div
+        data-swimlane-viewport
         style={{
           position: 'absolute',
           transformOrigin: '0 0',
@@ -1011,6 +1013,7 @@ const SwimlaneResizeOverlayInner: React.FC<{ readOnly?: boolean }> = ({ readOnly
     >
       <div
         ref={containerRef}
+        data-swimlane-viewport
         style={{
           position: 'absolute',
           transformOrigin: '0 0',

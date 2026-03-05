@@ -110,8 +110,8 @@ const ScreenshotOverlay: React.FC = () => {
       hideEl(document.querySelector<HTMLElement>('.react-flow__minimap'));
       document.querySelectorAll<HTMLElement>('[data-export-ignore]').forEach(hideEl);
 
-      // Pixel ratio for crisp capture
-      const pixelRatio = 4;
+      // Use device pixel ratio for 1:1 screen-accurate capture
+      const pixelRatio = window.devicePixelRatio || 1;
 
       // Capture the full viewport at high resolution
       let dataUrl: string;

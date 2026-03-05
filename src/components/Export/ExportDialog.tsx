@@ -645,8 +645,22 @@ function overrideViewportForCapture(
   const originalTransform = vpElement.style.transform;
   vpElement.style.transform = `translate(${x}px, ${y}px) scale(${zoom})`;
 
+  // Also override swimlane layer transforms — they compute their own transform
+  // from useViewport() React state, but we only changed the DOM. Recompute to match.
+  const containerOffset = useSwimlaneStore.getState().containerOffset;
+  const swimlaneTransform = `translate(${x + containerOffset.x * zoom}px, ${y + containerOffset.y * zoom}px) scale(${zoom})`;
+  const swimlaneVpEls = document.querySelectorAll<HTMLElement>('[data-swimlane-viewport]');
+  const originalSwimlaneTransforms: string[] = [];
+  swimlaneVpEls.forEach((el) => {
+    originalSwimlaneTransforms.push(el.style.transform);
+    el.style.transform = swimlaneTransform;
+  });
+
   return () => {
     vpElement.style.transform = originalTransform;
+    swimlaneVpEls.forEach((el, i) => {
+      el.style.transform = originalSwimlaneTransforms[i];
+    });
   };
 }
 
