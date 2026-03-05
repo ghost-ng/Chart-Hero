@@ -719,9 +719,13 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   }
 
   // Scale font size proportionally with node dimensions
+  // Use a blend of width and height ratios (weighted toward the larger ratio)
+  // so font doesn't shrink too aggressively when one dimension is constrained
   const widthRatio = width / defaultWidth;
   const heightRatio = height / defaultHeight;
-  const sizeRatio = Math.min(widthRatio, heightRatio);
+  const minR = Math.min(widthRatio, heightRatio);
+  const maxR = Math.max(widthRatio, heightRatio);
+  const sizeRatio = minR * 0.4 + maxR * 0.6;
   const proportionalFontSize = Math.max(8, Math.min(48, Math.round(fontSize * sizeRatio)));
   const scaledFontSize = autoFitFontSize ?? proportionalFontSize;
 

@@ -1403,12 +1403,7 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
           (behind grid, behind nodes/edges). Z-order: swimlane → grid → canvas */}
       {hasLanes && <SwimlaneLayer />}
 
-      {/* Swimlane headers — between backgrounds and ReactFlow nodes.
-          z-index 2 puts them below .react-flow__viewport nodes but above backgrounds */}
-      {hasLanes && <SwimlaneHeaderLayer />}
-
       <ReactFlow
-        style={{ position: 'relative', zIndex: 2 }}
         nodes={visibleNodes}
         edges={visibleEdges}
         onNodesChange={presentationMode ? undefined : onNodesChange}
@@ -1538,6 +1533,9 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
           />
         )}
 
+        {/* Swimlane headers — rendered INSIDE ReactFlow so they share its stacking context.
+            z-index 1 places them below .react-flow__viewport (z:2) but above background (z:-1). */}
+        {hasLanes && <SwimlaneHeaderLayer />}
       </ReactFlow>
 
       {/* Floating undo/redo buttons */}
