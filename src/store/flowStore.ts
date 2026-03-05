@@ -104,6 +104,8 @@ export interface FlowNodeData {
   /** Vertical flip (mirror via CSS scaleY(-1)) */
   flipV?: boolean;
   opacity?: number;
+  /** Fill color opacity (0–1). Applied as alpha channel on the fill color only. */
+  fillOpacity?: number;
   borderStyle?: 'solid' | 'dashed' | 'dotted';
   borderWidth?: number;
   /** Corner radius override (px) */

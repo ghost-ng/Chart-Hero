@@ -745,11 +745,6 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, to
                 onReset={() => update({ textColor: undefined })}
               />
             </div>
-            {!data.textColor && activeStyleId && (
-              <span className="text-[10px] font-medium text-blue-500 dark:text-blue-400 px-1 py-0.5 rounded bg-blue-50 dark:bg-blue-900/20 mt-1 inline-block">
-                Theme
-              </span>
-            )}
           </Field>
 
           {/* Font size */}
@@ -811,11 +806,6 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, to
                 onReset={() => update({ fontSize: undefined })}
               />
             </div>
-            {!data.fontSize && activeStyleId && (
-              <span className="text-[10px] font-medium text-blue-500 dark:text-blue-400 px-1 py-0.5 rounded bg-blue-50 dark:bg-blue-900/20 mt-1 inline-block">
-                Theme
-              </span>
-            )}
           </Field>
 
           {/* Font weight */}
@@ -845,11 +835,6 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, to
                 onReset={() => update({ fontWeight: undefined })}
               />
             </div>
-            {!data.fontWeight && activeStyleId && (
-              <span className="text-[10px] font-medium text-blue-500 dark:text-blue-400 px-1 py-0.5 rounded bg-blue-50 dark:bg-blue-900/20 mt-1 inline-block">
-                Theme
-              </span>
-            )}
           </Field>
 
           {/* Text alignment */}
@@ -904,11 +889,28 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, to
                 onReset={() => update({ color: undefined })}
               />
             </div>
-            {!data.color && activeStyleId && (
-              <span className="text-[10px] font-medium text-blue-500 dark:text-blue-400 px-1 py-0.5 rounded bg-blue-50 dark:bg-blue-900/20 mt-1 inline-block">
-                Theme
+          </Field>
+
+          {/* Fill Opacity */}
+          <Field label="Fill Opacity">
+            <div className="flex items-center gap-2">
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.05}
+                value={data.fillOpacity ?? 1}
+                onChange={(e) => update({ fillOpacity: Number(e.target.value) })}
+                className="flex-1 accent-primary"
+              />
+              <span className="text-xs text-muted dark:text-dk-muted w-10 text-right">
+                {Math.round((data.fillOpacity ?? 1) * 100)}%
               </span>
-            )}
+              <ResetIcon
+                visible={(data.fillOpacity ?? 1) < 1}
+                onReset={() => update({ fillOpacity: undefined })}
+              />
+            </div>
           </Field>
 
           {/* Border color */}
@@ -932,11 +934,6 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, to
                 onReset={() => update({ borderColor: undefined })}
               />
             </div>
-            {!data.borderColor && activeStyleId && (
-              <span className="text-[10px] font-medium text-blue-500 dark:text-blue-400 px-1 py-0.5 rounded bg-blue-50 dark:bg-blue-900/20 mt-1 inline-block">
-                Theme
-              </span>
-            )}
           </Field>
 
           {/* Border Width */}

@@ -1,14 +1,20 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Handle, Position, NodeResizer, type NodeProps } from '@xyflow/react';
 import { icons } from 'lucide-react';
+import chroma from 'chroma-js';
 import { useFlowStore, type FlowNodeData } from '../../store/flowStore';
 import { useUIStore } from '../../store/uiStore';
 
 const GroupNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const nodeData = data as FlowNodeData;
   const selectionColor = useUIStore((s) => s.selectionColor);
+  const updateNodeData = useFlowStore((s) => s.updateNodeData);
   const label = nodeData.label || 'Group';
-  const fillColor = nodeData.color || '#f1f5f9';
+  const rawFillColor = nodeData.color || '#f1f5f9';
+  const fillOpacity = nodeData.fillOpacity ?? 1;
+  const fillColor = (fillOpacity < 1 && rawFillColor && rawFillColor !== 'transparent')
+    ? (() => { try { return chroma(rawFillColor).alpha(fillOpacity).css(); } catch { return rawFillColor; } })()
+    : rawFillColor;
   const borderColor = nodeData.borderColor || '#94a3b8';
   const textColor = nodeData.textColor || '#475569';
   const width = nodeData.width || 300;
@@ -19,6 +25,11 @@ const GroupNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const fontSize = nodeData.fontSize ?? 12;
   const fontWeight = nodeData.fontWeight ?? 600;
   const fontFamily = nodeData.fontFamily || "'Inter', sans-serif";
+  const textAlign = nodeData.textAlign || 'left';
+  const opacity = nodeData.opacity ?? 0.6;
+  const rotation = nodeData.rotation || 0;
+  const flipH = nodeData.flipH || false;
+  const flipV = nodeData.flipV || false;
 
   // Icon support
   const IconComponent = nodeData.icon
@@ -51,6 +62,8 @@ const GroupNode: React.FC<NodeProps> = ({ id, data, selected }) => {
 
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(label);
+  const [isRotating, setIsRotating] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -63,10 +76,10 @@ const GroupNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const commitEdit = useCallback(() => {
     const trimmed = editValue.trim();
     if (trimmed && trimmed !== label) {
-      useFlowStore.getState().updateNodeData(id, { label: trimmed });
+      updateNodeData(id, { label: trimmed });
     }
     setIsEditing(false);
-  }, [editValue, label, id]);
+  }, [editValue, label, id, updateNodeData]);
 
   const handleDoubleClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -79,18 +92,137 @@ const GroupNode: React.FC<NodeProps> = ({ id, data, selected }) => {
     if (e.key === 'Escape') { setIsEditing(false); }
   }, [commitEdit]);
 
+  // Drag-to-rotate logic
+  const handleRotateStart = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      e.preventDefault();
+      setIsRotating(true);
+
+      const wrapper = wrapperRef.current;
+      if (!wrapper) return;
+      const rect = wrapper.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      const startAngle = nodeData.rotation || 0;
+      const initAngle = Math.atan2(e.clientY - centerY, e.clientX - centerX) * (180 / Math.PI);
+
+      const onMouseMove = (ev: MouseEvent) => {
+        const currentAngle = Math.atan2(ev.clientY - centerY, ev.clientX - centerX) * (180 / Math.PI);
+        let delta = currentAngle - initAngle;
+        let newRotation = startAngle + delta;
+        newRotation = ((newRotation % 360) + 360) % 360;
+        if (ev.shiftKey) {
+          newRotation = Math.round(newRotation / 15) * 15;
+        }
+        updateNodeData(id, { rotation: newRotation });
+      };
+
+      const onMouseUp = () => {
+        setIsRotating(false);
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+      };
+
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', onMouseUp);
+    },
+    [id, nodeData.rotation, updateNodeData],
+  );
+
+  // Visual transforms
+  const transformParts: string[] = [];
+  if (rotation !== 0) transformParts.push(`rotate(${rotation}deg)`);
+  if (flipH) transformParts.push('scaleX(-1)');
+  if (flipV) transformParts.push('scaleY(-1)');
+
   return (
     <div
+      ref={wrapperRef}
       style={{
         width,
         height,
-        backgroundColor: fillColor,
-        border: `${borderWidth}px ${selected ? `solid ${selectionColor}` : `${borderStyle} ${borderColor}`}`,
-        borderRadius,
-        opacity: nodeData.opacity ?? 0.6,
         position: 'relative',
+        overflow: 'visible',
       }}
     >
+      {/* Inner shape with visual transforms */}
+      <div
+        style={{
+          width: '100%',
+          height: '100%',
+          backgroundColor: fillColor,
+          border: `${borderWidth}px ${selected ? `solid ${selectionColor}` : `${borderStyle} ${borderColor}`}`,
+          borderRadius,
+          opacity,
+          position: 'relative',
+          transform: transformParts.length > 0 ? transformParts.join(' ') : undefined,
+          transition: 'box-shadow 0.15s, transform 0.2s',
+          boxShadow: selected
+            ? `0 0 0 ${1.5}px ${selectionColor}, 0 0 8px 2px ${selectionColor}40`
+            : '0 1px 3px rgba(0,0,0,0.1)',
+        }}
+      >
+        {/* Group label at top — double-click to edit */}
+        {isEditing ? (
+          <input
+            ref={inputRef}
+            type="text"
+            value={editValue}
+            onChange={(e) => setEditValue(e.target.value)}
+            onBlur={commitEdit}
+            onKeyDown={handleKeyDown}
+            style={{
+              position: 'absolute',
+              top: 2,
+              left: 6,
+              fontSize,
+              fontWeight,
+              color: textColor,
+              fontFamily,
+              backgroundColor: 'transparent',
+              border: `1px solid ${selectionColor || '#3b82f6'}`,
+              borderRadius: 3,
+              outline: 'none',
+              padding: '1px 3px',
+              minWidth: 40,
+              maxWidth: width - 16,
+            }}
+          />
+        ) : (
+          <div
+            onDoubleClick={handleDoubleClick}
+            style={{
+              position: 'absolute',
+              top: 4,
+              left: textAlign === 'center' ? 0 : textAlign === 'right' ? undefined : 8,
+              right: textAlign === 'right' ? 8 : undefined,
+              width: textAlign === 'center' ? '100%' : undefined,
+              textAlign: textAlign as 'left' | 'center' | 'right',
+              fontSize,
+              fontWeight,
+              color: textColor,
+              fontFamily,
+              userSelect: 'none',
+              cursor: 'var(--cursor-select)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: textAlign === 'center' ? 'center' : textAlign === 'right' ? 'flex-end' : 'flex-start',
+              gap: 4,
+            }}
+          >
+            {renderIcon()}
+            {label}
+          </div>
+        )}
+
+        {/* Connection handles */}
+        <Handle type="target" position={Position.Top} />
+        <Handle type="source" position={Position.Bottom} />
+        <Handle type="target" position={Position.Left} />
+        <Handle type="source" position={Position.Right} />
+      </div>
+
       <NodeResizer
         isVisible={!!selected}
         minWidth={100}
@@ -104,66 +236,51 @@ const GroupNode: React.FC<NodeProps> = ({ id, data, selected }) => {
           border: `1.5px solid ${selectionColor}`,
         }}
         onResize={(_event, params) => {
-          useFlowStore
-            .getState()
-            .updateNodeData(id, { width: params.width, height: params.height });
+          updateNodeData(id, { width: params.width, height: params.height });
         }}
       />
 
-      {/* Group label at top — double-click to edit */}
-      {isEditing ? (
-        <input
-          ref={inputRef}
-          type="text"
-          value={editValue}
-          onChange={(e) => setEditValue(e.target.value)}
-          onBlur={commitEdit}
-          onKeyDown={handleKeyDown}
-          style={{
-            position: 'absolute',
-            top: 2,
-            left: 6,
-            fontSize,
-            fontWeight,
-            color: textColor,
-            fontFamily,
-            backgroundColor: 'transparent',
-            border: `1px solid ${selectionColor || '#3b82f6'}`,
-            borderRadius: 3,
-            outline: 'none',
-            padding: '1px 3px',
-            minWidth: 40,
-            maxWidth: width - 16,
-          }}
-        />
-      ) : (
+      {/* Rotation handle — visible only when selected */}
+      {selected && (
         <div
-          onDoubleClick={handleDoubleClick}
+          className="charthero-rotate-handle-group"
           style={{
             position: 'absolute',
-            top: 4,
-            left: 8,
-            fontSize,
-            fontWeight,
-            color: textColor,
-            fontFamily,
-            userSelect: 'none',
-            cursor: 'var(--cursor-select)',
+            left: '50%',
+            top: -32,
+            transform: 'translateX(-50%)',
             display: 'flex',
+            flexDirection: 'column',
             alignItems: 'center',
-            gap: 4,
+            pointerEvents: 'none',
+            zIndex: 60,
           }}
         >
-          {renderIcon()}
-          {label}
+          <div
+            className={`nodrag nopan charthero-rotate-handle${isRotating ? ' rotating' : ''}`}
+            onMouseDown={handleRotateStart}
+            data-tooltip={`${Math.round(rotation)}°`}
+            style={{
+              width: 10,
+              height: 10,
+              borderRadius: '50%',
+              backgroundColor: 'white',
+              border: `2px solid ${selectionColor}`,
+              boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+              pointerEvents: 'auto',
+              flexShrink: 0,
+            }}
+          />
+          <div
+            style={{
+              width: 1,
+              height: 18,
+              backgroundColor: selectionColor,
+              opacity: 0.6,
+            }}
+          />
         </div>
       )}
-
-      {/* Connection handles */}
-      <Handle type="target" position={Position.Top} />
-      <Handle type="source" position={Position.Bottom} />
-      <Handle type="target" position={Position.Left} />
-      <Handle type="source" position={Position.Right} />
     </div>
   );
 };

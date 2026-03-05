@@ -7,6 +7,7 @@ import { useUIStore } from '../../store/uiStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { DependencyBadge } from '../Dependencies';
 import { ensureReadableText } from '../../utils/colorUtils';
+import chroma from 'chroma-js';
 import { resolveNodeStyle } from '../../utils/themeResolver';
 import { useStyleStore } from '../../store/styleStore';
 import { diagramStyles } from '../../styles/diagramStyles';
@@ -572,7 +573,12 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
 
   // Resolve styling via the theme resolver
   const resolved = resolveNodeStyle(nodeData as unknown as Record<string, unknown>, shape, activeStyle);
-  const fillColor = isIconOnly ? 'transparent' : resolved.fill;
+  const rawFillColor = isIconOnly ? 'transparent' : resolved.fill;
+  const fillOpacity = nodeData.fillOpacity ?? 1;
+  // Apply fillOpacity as alpha channel on the fill color
+  const fillColor = (!isIconOnly && rawFillColor && rawFillColor !== 'transparent' && rawFillColor !== 'none' && fillOpacity < 1)
+    ? (() => { try { return chroma(rawFillColor).alpha(fillOpacity).css(); } catch { return rawFillColor; } })()
+    : rawFillColor;
   const borderColor = isIconOnly ? 'transparent' : resolved.borderColor;
   const isTransparentFill = !fillColor || fillColor === 'transparent' || fillColor === 'none';
   // For transparent fills (textbox, free-floating labels), check text readability
@@ -909,7 +915,7 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
         >
           {/* Rotate handle circle */}
           <div
-            className={`charthero-rotate-handle${isRotating ? ' rotating' : ''}`}
+            className={`nodrag nopan charthero-rotate-handle${isRotating ? ' rotating' : ''}`}
             onMouseDown={handleRotateStart}
             data-tooltip={`${Math.round(rotation)}°`}
             style={{

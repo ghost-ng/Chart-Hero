@@ -1567,7 +1567,7 @@ export function importFromJson(
 
     // Optional number fields
     for (const key of ['fontSize', 'fontWeight', 'iconBorderWidth', 'iconSize',
-      'width', 'height', 'opacity', 'borderWidth', 'borderRadius', 'rotation',
+      'width', 'height', 'opacity', 'fillOpacity', 'borderWidth', 'borderRadius', 'rotation',
       'svgStrokeWidth'] as const) {
       if (typeof rawData[key] === 'number') {
         (nodeData as Record<string, unknown>)[key] = rawData[key];
