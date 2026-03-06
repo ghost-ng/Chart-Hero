@@ -57,6 +57,8 @@ import {
   HelpCircle,
   Crosshair,
   Layers,
+  PointerOff,
+  BoxSelect,
 } from 'lucide-react';
 
 import { useUIStore } from '../../store/uiStore';
@@ -337,6 +339,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
   const selectedNodes = useFlowStore((s) => s.selectedNodes);
   const selectedEdges = useFlowStore((s) => s.selectedEdges);
   const removeNode = useFlowStore((s) => s.removeNode);
+  const clearSelection = useFlowStore((s) => s.clearSelection);
   const setNodes = useFlowStore((s) => s.setNodes);
   const setEdges = useFlowStore((s) => s.setEdges);
 
@@ -378,12 +381,15 @@ const Toolbar: React.FC<ToolbarProps> = ({
   const [gridOptionsOpen, setGridOptionsOpen] = useState(false);
   // Snap options dropdown state
   const [snapOptionsOpen, setSnapOptionsOpen] = useState(false);
+  // Select menu dropdown state
+  const [selectMenuOpen, setSelectMenuOpen] = useState(false);
   const gridDropdownRef = useRef<HTMLDivElement>(null);
   const snapDropdownRef = useRef<HTMLDivElement>(null);
+  const selectMenuRef = useRef<HTMLDivElement>(null);
 
   // Close dropdowns on outside click
   useEffect(() => {
-    if (!gridOptionsOpen && !snapOptionsOpen) return;
+    if (!gridOptionsOpen && !snapOptionsOpen && !selectMenuOpen) return;
     const handleClick = (e: MouseEvent) => {
       if (gridOptionsOpen && gridDropdownRef.current && !gridDropdownRef.current.contains(e.target as Node)) {
         setGridOptionsOpen(false);
@@ -391,10 +397,13 @@ const Toolbar: React.FC<ToolbarProps> = ({
       if (snapOptionsOpen && snapDropdownRef.current && !snapDropdownRef.current.contains(e.target as Node)) {
         setSnapOptionsOpen(false);
       }
+      if (selectMenuOpen && selectMenuRef.current && !selectMenuRef.current.contains(e.target as Node)) {
+        setSelectMenuOpen(false);
+      }
     };
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
-  }, [gridOptionsOpen, snapOptionsOpen]);
+  }, [gridOptionsOpen, snapOptionsOpen, selectMenuOpen]);
 
   // Layout menu state (replaces separate transform dropdowns)
   const [layoutMenuOpen, setLayoutMenuOpen] = useState(false);
@@ -561,6 +570,17 @@ const Toolbar: React.FC<ToolbarProps> = ({
       removeNode(nodeId);
     }
   }, [selectedNodes, removeNode]);
+
+  const handleDeselectAll = useCallback(() => {
+    clearSelection();
+    useSwimlaneStore.getState().setSwimlaneSelected(false);
+  }, [clearSelection]);
+
+  const handleSelectAll = useCallback(() => {
+    const { nodes, edges } = useFlowStore.getState();
+    useFlowStore.getState().setSelectedNodes(nodes.map(n => n.id));
+    useFlowStore.getState().setSelectedEdges(edges.map(e => e.id));
+  }, []);
 
   // Z-order: step backward/forward (for selected nodes)
   const handleSendBackward = useCallback(() => {
@@ -1137,7 +1157,40 @@ const Toolbar: React.FC<ToolbarProps> = ({
 
     view: (
       <>
-        <ToolbarButton icon={<MousePointer2 size={iconSize} />} tooltip="Select (drag to box-select)" active={true} />
+        {/* Select dropdown */}
+        <div className="relative" ref={selectMenuRef}>
+          <ToolbarButton
+            icon={<MousePointer2 size={iconSize} />}
+            tooltip="Select"
+            onClick={() => setSelectMenuOpen(!selectMenuOpen)}
+          />
+          {selectMenuOpen && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setSelectMenuOpen(false)} />
+              <div className="absolute top-full left-0 mt-1 bg-white dark:bg-dk-panel border border-slate-200 dark:border-dk-border rounded-lg shadow-lg p-1 z-50 w-44">
+                <button
+                  onClick={() => { handleSelectAll(); setSelectMenuOpen(false); }}
+                  className="w-full flex items-center gap-2 text-left text-xs px-2 py-1.5 rounded transition-colors text-slate-600 dark:text-dk-muted hover:bg-slate-100 dark:hover:bg-dk-hover"
+                >
+                  <BoxSelect size={14} />
+                  Select All
+                </button>
+                <button
+                  onClick={() => { handleDeselectAll(); setSelectMenuOpen(false); }}
+                  className={`w-full flex items-center gap-2 text-left text-xs px-2 py-1.5 rounded transition-colors ${
+                    !hasSelection
+                      ? 'text-slate-300 dark:text-slate-600 cursor-not-allowed'
+                      : 'text-slate-600 dark:text-dk-muted hover:bg-slate-100 dark:hover:bg-dk-hover'
+                  }`}
+                  disabled={!hasSelection}
+                >
+                  <PointerOff size={14} />
+                  Deselect All
+                </button>
+              </div>
+            </>
+          )}
+        </div>
         <ToolbarButton icon={<Maximize size={iconSize} />} tooltip="Fit View" onClick={onFitView} />
 
         {/* Grid Options dropdown */}
@@ -1442,14 +1495,14 @@ const Toolbar: React.FC<ToolbarProps> = ({
       `}
     >
       {/* ---- Logo (pinned first) ---- */}
-      <div className={`flex items-center shrink-0 ${isVertical ? 'py-1' : 'gap-2 mr-1'}`}>
+      <a href={window.location.origin + window.location.pathname} target="_blank" rel="noopener noreferrer" className={`flex items-center shrink-0 cursor-pointer ${isVertical ? 'py-1' : 'gap-2 mr-1'}`}>
         <Workflow size={20} className="text-primary" />
         {!isVertical && (
           <span className={`font-display font-semibold text-sm tracking-tight ${darkMode ? 'text-dk-text' : ''}`}>
             Chart Hero
           </span>
         )}
-      </div>
+      </a>
 
       <Sep />
 

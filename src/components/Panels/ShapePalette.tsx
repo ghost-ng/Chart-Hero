@@ -434,10 +434,7 @@ const ShapePalette: React.FC = () => {
               <button
                 onClick={() => {
                   const store = useSwimlaneStore.getState();
-                  const hasLanes = store.config.horizontal.length > 0 || store.config.vertical.length > 0;
-                  if (!hasLanes) {
-                    store.setIsCreating(true);
-                  }
+                  store.setIsCreating(true);
                   useUIStore.getState().setActivePanelTab('lane');
                   if (!useUIStore.getState().propertiesPanelOpen) {
                     useUIStore.getState().togglePropertiesPanel();

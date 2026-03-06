@@ -6,6 +6,7 @@ import {
   type SwimlaneItem,
 } from '../../store/swimlaneStore';
 import { useStyleStore } from '../../store/styleStore';
+import { diagramStyles } from '../../styles/diagramStyles';
 import { generateId } from '../../utils/idGenerator';
 
 // ---------------------------------------------------------------------------
@@ -40,9 +41,20 @@ const SwimlaneCreationDialog: React.FC = () => {
   const isCreating = useSwimlaneStore((s) => s.isCreating);
   const setIsCreating = useSwimlaneStore((s) => s.setIsCreating);
   const addLane = useSwimlaneStore((s) => s.addLane);
+  const config = useSwimlaneStore((s) => s.config);
   const setOrientation = useSwimlaneStore((s) => s.setOrientation);
   const setContainerTitle = useSwimlaneStore((s) => s.setContainerTitle);
   const darkMode = useStyleStore((s) => s.darkMode);
+  const activeStyleId = useStyleStore((s) => s.activeStyleId);
+
+  // Use the active diagram style's accent colors when available, otherwise fall back to LANE_PALETTE
+  const activePalette = React.useMemo(() => {
+    if (activeStyleId) {
+      const style = diagramStyles[activeStyleId];
+      if (style && style.accentColors.length > 0) return style.accentColors;
+    }
+    return LANE_PALETTE;
+  }, [activeStyleId]);
 
   // Local form state
   const [orientation, setLocalOrientation] = useState<CreationOrientation>('horizontal');
@@ -68,20 +80,24 @@ const SwimlaneCreationDialog: React.FC = () => {
   }, [setIsCreating, resetForm]);
 
   const handleCreate = useCallback(() => {
+    // Append new lanes alongside existing ones (don't clear existing)
+    const existingHCount = config.horizontal.length;
+    const existingVCount = config.vertical.length;
+
     // Parse labels
     const parsedLabels = labels
       .split(',')
       .map((l) => l.trim())
       .filter(Boolean);
 
-    // Build lane items
-    const buildLanes = (count: number, prefix: string): SwimlaneItem[] => {
+    // Build lane items (order offset continues from existing lanes)
+    const buildLanes = (count: number, prefix: string, orderOffset: number): SwimlaneItem[] => {
       const items: SwimlaneItem[] = [];
       for (let i = 0; i < count; i++) {
-        const lbl = parsedLabels[i] || `${prefix} ${i + 1}`;
+        const lbl = parsedLabels[i] || `${prefix} ${orderOffset + i + 1}`;
         const color =
           colorMode === 'auto'
-            ? LANE_PALETTE[i % LANE_PALETTE.length]
+            ? activePalette[(orderOffset + i) % activePalette.length]
             : singleColor;
         items.push({
           id: generateId('lane'),
@@ -89,7 +105,7 @@ const SwimlaneCreationDialog: React.FC = () => {
           color,
           collapsed: false,
           size: prefix === 'Row' ? 200 : 250,
-          order: i,
+          order: orderOffset + i,
         });
       }
       return items;
@@ -102,13 +118,13 @@ const SwimlaneCreationDialog: React.FC = () => {
 
     if (orientation === 'horizontal') {
       setOrientation('horizontal');
-      const lanes = buildLanes(laneCount, 'Row');
+      const lanes = buildLanes(laneCount, 'Row', existingHCount);
       for (const lane of lanes) {
         addLane('horizontal', lane);
       }
     } else if (orientation === 'vertical') {
       setOrientation('vertical');
-      const lanes = buildLanes(laneCount, 'Column');
+      const lanes = buildLanes(laneCount, 'Column', existingVCount);
       for (const lane of lanes) {
         addLane('vertical', lane);
       }
@@ -126,14 +142,14 @@ const SwimlaneCreationDialog: React.FC = () => {
       for (let i = 0; i < hCount; i++) {
         hLanes.push({
           id: generateId('lane'),
-          label: hLabels[i] || `Row ${i + 1}`,
+          label: hLabels[i] || `Row ${existingHCount + i + 1}`,
           color:
             colorMode === 'auto'
-              ? LANE_PALETTE[i % LANE_PALETTE.length]
+              ? activePalette[(existingHCount + i) % activePalette.length]
               : singleColor,
           collapsed: false,
           size: 200,
-          order: i,
+          order: existingHCount + i,
         });
       }
 
@@ -141,14 +157,14 @@ const SwimlaneCreationDialog: React.FC = () => {
       for (let i = 0; i < vCount; i++) {
         vLanes.push({
           id: generateId('lane'),
-          label: vLabels[i] || `Col ${i + 1}`,
+          label: vLabels[i] || `Col ${existingVCount + i + 1}`,
           color:
             colorMode === 'auto'
-              ? LANE_PALETTE[(hCount + i) % LANE_PALETTE.length]
+              ? activePalette[(existingVCount + hCount + i) % activePalette.length]
               : singleColor,
           collapsed: false,
           size: 250,
-          order: i,
+          order: existingVCount + i,
         });
       }
 
@@ -164,10 +180,12 @@ const SwimlaneCreationDialog: React.FC = () => {
     orientation,
     laneCount,
     title,
+    config,
     setContainerTitle,
     setOrientation,
     addLane,
     handleClose,
+    activePalette,
   ]);
 
   if (!isCreating) return null;

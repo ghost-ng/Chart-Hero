@@ -8,9 +8,11 @@ import {
   Rows3,
   Paintbrush,
   RotateCcw,
+  Trash2,
 } from 'lucide-react';
 
 import { useStyleStore } from '../../store/styleStore';
+import { useSwimlaneStore } from '../../store/swimlaneStore';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -98,6 +100,7 @@ const CanvasContextMenu: React.FC<CanvasContextMenuProps> = ({
   const darkMode = useStyleStore((s) => s.darkMode);
   const canvasColorOverride = useStyleStore((s) => s.canvasColorOverride);
   const setCanvasColorOverride = useStyleStore((s) => s.setCanvasColorOverride);
+  const hasLanes = useSwimlaneStore((s) => s.config.horizontal.length > 0 || s.config.vertical.length > 0);
   const menuRef = useRef<HTMLDivElement>(null);
   const [showCanvasColorSub, setShowCanvasColorSub] = useState(false);
   const canvasColorItemRef = useRef<HTMLDivElement>(null);
@@ -168,6 +171,14 @@ const CanvasContextMenu: React.FC<CanvasContextMenuProps> = ({
         onClick={() => { onInsertSwimlanes(); onClose(); }}
         darkMode={darkMode}
       />
+      {hasLanes && (
+        <MenuItem
+          icon={<Trash2 size={14} />}
+          label="Delete Swimlanes"
+          onClick={() => { useSwimlaneStore.getState().clearAllLanes(); onClose(); }}
+          darkMode={darkMode}
+        />
+      )}
 
       <MenuDivider darkMode={darkMode} />
 

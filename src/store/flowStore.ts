@@ -246,11 +246,15 @@ export const useFlowStore = create<FlowState>()(
       set((state) => {
         state.nodes = applyNodeChanges(changes, state.nodes) as FlowNode[];
 
-        // Keep selectedNodes in sync with selection changes
+        // Keep selectedNodes in sync with selection and removal changes
         const selectionChanges = changes.filter(
           (c): c is NodeChange<FlowNode> & { type: 'select' } => c.type === 'select',
         );
-        if (selectionChanges.length > 0) {
+        const removedIds = changes
+          .filter((c) => c.type === 'remove')
+          .map((c) => c.id);
+
+        if (selectionChanges.length > 0 || removedIds.length > 0) {
           const selected = new Set(state.selectedNodes);
           for (const change of selectionChanges) {
             if (change.selected) {
@@ -258,6 +262,9 @@ export const useFlowStore = create<FlowState>()(
             } else {
               selected.delete(change.id);
             }
+          }
+          for (const id of removedIds) {
+            selected.delete(id);
           }
           state.selectedNodes = Array.from(selected);
         }
@@ -296,7 +303,11 @@ export const useFlowStore = create<FlowState>()(
         const selectionChanges = changes.filter(
           (c): c is EdgeChange<FlowEdge> & { type: 'select' } => c.type === 'select',
         );
-        if (selectionChanges.length > 0) {
+        const removedEdgeIds = changes
+          .filter((c) => c.type === 'remove')
+          .map((c) => c.id);
+
+        if (selectionChanges.length > 0 || removedEdgeIds.length > 0) {
           const selected = new Set(state.selectedEdges);
           for (const change of selectionChanges) {
             if (change.selected) {
@@ -304,6 +315,9 @@ export const useFlowStore = create<FlowState>()(
             } else {
               selected.delete(change.id);
             }
+          }
+          for (const id of removedEdgeIds) {
+            selected.delete(id);
           }
           state.selectedEdges = Array.from(selected);
         }

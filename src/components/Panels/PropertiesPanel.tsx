@@ -61,8 +61,8 @@ const toHexColor = (c: string | undefined, fallback = '#ffffff'): string => {
 const TABS: { id: PanelTab; label: string; collapsible?: boolean }[] = [
   { id: 'node', label: 'Node', collapsible: true },
   { id: 'edge', label: 'Edge', collapsible: true },
-  { id: 'deps', label: 'Deps' },
   { id: 'lane', label: 'Lane' },
+  { id: 'deps', label: 'Deps' },
   { id: 'data', label: 'Data' },
 ];
 
@@ -536,6 +536,7 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, to
         const allCollapsed = !prevAll;
         setCollapsedSections({
           block: allCollapsed,
+          bodyStyle: allCollapsed,
           label: allCollapsed,
           icon: allCollapsed,
           status: allCollapsed,
@@ -554,7 +555,8 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, to
     setAllExpanded(null);
     setCollapsedSections({
       block: false,  // always expanded
-      label: false,  // always expanded (has text + icon settings)
+      bodyStyle: false,  // always expanded
+      label: false,  // always expanded (has text settings)
       status: pucks.length === 0,  // expanded only if node has pucks
       icon: !data.icon,  // expanded only if node has an icon
     });
@@ -634,239 +636,126 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, to
               {data.shape || 'rectangle'}
             </div>
           </Field>
-        </>
-      )}
 
-      {/* ============ LABEL PROPERTIES ============ */}
-      <SectionHeader label="Label" collapsed={isSectionCollapsed('label')} onToggle={() => toggleSection('label')} />
-
-      {!isSectionCollapsed('label') && (
-        <>
-          {/* Label — show \n escape chars in the field, render as actual newlines on canvas */}
-          <Field label="Text">
-            <input
-              type="text"
-              value={(data.label || '').replace(/\n/g, '\\n')}
-              onChange={(e) => update({ label: e.target.value.replace(/\\n/g, '\n') })}
-              className="w-full px-2 py-1.5 text-sm rounded border border-border bg-white dark:bg-dk-input dark:text-dk-text dark:border-dk-border
-                         focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-            />
-          </Field>
-
-          {/* Icon */}
-          <Field label="Icon">
+          {/* Block Size */}
+          <Field label="Block Size">
             <div className="flex items-center gap-2">
-              {CurrentIconComponent && (
-                <div className="flex items-center justify-center w-8 h-8 rounded border border-border dark:border-dk-border bg-slate-50 dark:bg-dk-hover">
-                  <CurrentIconComponent size={18} className="text-slate-600 dark:text-dk-muted" />
-                </div>
-              )}
               <button
-                onClick={() => setIconPickerOpen(!iconPickerOpen)}
-                className="px-3 py-1.5 text-xs font-medium rounded border border-border dark:border-dk-border
-                           text-text-muted hover:bg-slate-50 dark:hover:bg-dk-hover hover:text-text transition-colors cursor-pointer"
-              >
-                {currentIcon ? 'Change Icon' : 'Add Icon'}
-              </button>
-              {currentIcon && (
-                <button
-                  onClick={() => update({ icon: undefined })}
-                  className="text-xs text-red-500 hover:text-red-700 transition-colors cursor-pointer"
-                >
-                  Remove
-                </button>
-              )}
-            </div>
-            {iconPickerOpen && (
-              <IconPicker
-                currentIcon={currentIcon}
-                onSelect={(iconName) => {
-                  if (iconName === '') {
-                    update({ icon: undefined });
-                    // Collapse icon section when removing icon
-                    setAllExpanded(null);
-                    setCollapsedSections((prev) => ({ ...prev, icon: true }));
-                  } else {
-                    update({ icon: iconName });
-                    // Auto-expand icon style section when an icon is selected
-                    setAllExpanded(null);
-                    setCollapsedSections((prev) => ({ ...prev, icon: false }));
+                onClick={() => {
+                  const { selectedNodes, nodes: allNodes, updateNodeData: bulkUpdate } = useFlowStore.getState();
+                  for (const nid of selectedNodes) {
+                    const node = allNodes.find(n => n.id === nid);
+                    if (node) {
+                      const nd = node.data as FlowNodeData;
+                      const curW = (nd as Record<string, unknown>).width as number || 160;
+                      const curH = (nd as Record<string, unknown>).height as number || 60;
+                      bulkUpdate(nid, { width: Math.max(40, curW - 20), height: Math.max(20, curH - 15) } as Partial<FlowNodeData>);
+                    }
                   }
-                  setIconPickerOpen(false);
                 }}
-                onClose={() => setIconPickerOpen(false)}
-              />
-            )}
-          </Field>
-
-          {currentIcon && (
-            <Field label="Icon Position">
-              <div className="flex items-center gap-1">
-                {[
-                  { value: 'left', label: 'Left' },
-                  { value: 'right', label: 'Right' },
-                ].map((pos) => (
-                  <button
-                    key={pos.value}
-                    onClick={() => update({ iconPosition: pos.value as 'left' | 'right' })}
-                    className={`
-                      flex-1 py-1.5 text-xs font-medium rounded border transition-colors cursor-pointer
-                      ${(data.iconPosition || 'left') === pos.value
-                        ? 'bg-blue-50 border-blue-300 text-blue-600 dark:bg-blue-800/15 dark:border-blue-500/50 dark:text-blue-400'
-                        : 'border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-dk-border dark:text-dk-muted dark:hover:bg-dk-hover'
-                      }
-                    `}
-                  >
-                    {pos.label}
-                  </button>
-                ))}
-              </div>
-            </Field>
-          )}
-
-          {/* Text color */}
-          <Field label="Text Color">
-            <div className="flex items-center gap-2">
-              <input
-                type="color"
-                value={toHexColor(textColor, '#ffffff')}
-                onChange={(e) => update({ textColor: e.target.value })}
-                className="w-8 h-8 rounded border border-border cursor-pointer"
-              />
-              <input
-                type="text"
-                value={textColor}
-                onChange={(e) => update({ textColor: e.target.value })}
-                className="flex-1 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white dark:bg-dk-input dark:text-dk-text dark:border-dk-border
-                           focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-              />
-              <ResetIcon
-                visible={!!activeStyleId && !!data.textColor}
-                onReset={() => update({ textColor: undefined })}
-              />
+                className="flex items-center justify-center gap-1 flex-1 py-1.5 text-xs font-medium rounded border border-border
+                           text-text-muted hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer"
+                data-tooltip-left="Decrease block size"
+              >
+                <Minus size={12} /> Smaller
+              </button>
+              <button
+                onClick={() => {
+                  const { selectedNodes, nodes: allNodes, updateNodeData: bulkUpdate } = useFlowStore.getState();
+                  for (const nid of selectedNodes) {
+                    const node = allNodes.find(n => n.id === nid);
+                    if (node) {
+                      const nd = node.data as FlowNodeData;
+                      const curW = (nd as Record<string, unknown>).width as number || 160;
+                      const curH = (nd as Record<string, unknown>).height as number || 60;
+                      bulkUpdate(nid, { width: curW + 20, height: curH + 15 } as Partial<FlowNodeData>);
+                    }
+                  }
+                }}
+                className="flex items-center justify-center gap-1 flex-1 py-1.5 text-xs font-medium rounded border border-border
+                           text-text-muted hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer"
+                data-tooltip-left="Increase block size"
+              >
+                <Plus size={12} /> Larger
+              </button>
             </div>
           </Field>
 
-          {/* Font size */}
-          <Field label="Font Size">
+          {/* Corner Radius */}
+          <Field label="Corner Radius">
             <div className="flex items-center gap-2">
               <input
                 type="range"
-                min={8}
-                max={32}
-                value={fontSize}
-                onChange={(e) => {
-                  const newSize = Number(e.target.value);
-                  update({ fontSize: newSize });
-                  // Apply to all other selected nodes too
-                  const { selectedNodes, updateNodeData: bulkUpdate } = useFlowStore.getState();
-                  for (const nid of selectedNodes) {
-                    if (nid !== nodeId) bulkUpdate(nid, { fontSize: newSize });
-                  }
-                }}
+                min={0}
+                max={50}
+                step={1}
+                value={data.borderRadius ?? 4}
+                onChange={(e) => update({ borderRadius: Number(e.target.value) })}
                 className="flex-1 accent-primary"
               />
               <span className="text-xs text-text-muted w-8 text-right font-mono">
-                {fontSize}
+                {data.borderRadius ?? 4}px
               </span>
-              <button
-                onClick={() => {
-                  const { selectedNodes, nodes: allNodes, updateNodeData: bulkUpdate } = useFlowStore.getState();
-                  for (const nid of selectedNodes) {
-                    const node = allNodes.find(n => n.id === nid);
-                    if (node) {
-                      const currentSize = (node.data as FlowNodeData).fontSize || 14;
-                      bulkUpdate(nid, { fontSize: Math.max(8, currentSize - 1) });
-                    }
-                  }
-                }}
-                className="p-1 rounded border border-border text-text-muted hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer"
-                data-tooltip-left="Decrease font size"
-              >
-                <AArrowDown size={14} />
-              </button>
-              <button
-                onClick={() => {
-                  const { selectedNodes, nodes: allNodes, updateNodeData: bulkUpdate } = useFlowStore.getState();
-                  for (const nid of selectedNodes) {
-                    const node = allNodes.find(n => n.id === nid);
-                    if (node) {
-                      const currentSize = (node.data as FlowNodeData).fontSize || 14;
-                      bulkUpdate(nid, { fontSize: Math.min(32, currentSize + 1) });
-                    }
-                  }
-                }}
-                className="p-1 rounded border border-border text-text-muted hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer"
-                data-tooltip-left="Increase font size"
-              >
-                <AArrowUp size={14} />
-              </button>
-              <ResetIcon
-                visible={!!activeStyleId && !!data.fontSize}
-                onReset={() => update({ fontSize: undefined })}
-              />
             </div>
           </Field>
 
-          {/* Font weight */}
-          <Field label="Font Weight">
-            <div className="flex items-center gap-1">
-              {([
-                { value: 300, label: 'Light' },
-                { value: 400, label: 'Normal' },
-                { value: 600, label: 'Semi' },
-                { value: 700, label: 'Bold' },
-              ] as const).map((opt) => (
-                <button
-                  key={opt.value}
-                  onClick={() => update({ fontWeight: opt.value })}
-                  className={`flex-1 py-1.5 text-xs rounded border transition-colors cursor-pointer
-                    ${fontWeight === opt.value
-                      ? 'bg-blue-50 border-blue-300 text-blue-600 dark:bg-blue-800/15 dark:border-blue-500/50 dark:text-blue-400'
-                      : 'border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-dk-border dark:text-dk-muted dark:hover:bg-dk-hover'
-                    }`}
-                  style={{ fontWeight: opt.value }}
-                >
-                  {opt.label}
-                </button>
-              ))}
-              <ResetIcon
-                visible={!!activeStyleId && !!data.fontWeight}
-                onReset={() => update({ fontWeight: undefined })}
+          {/* Opacity */}
+          <Field label="Opacity">
+            <div className="flex items-center gap-2">
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.05}
+                value={data.opacity ?? 1}
+                onChange={(e) => update({ opacity: Number(e.target.value) })}
+                className="flex-1 h-1.5 accent-primary"
               />
+              <span className="text-xs text-text-muted w-8 text-right font-mono">
+                {Math.round((data.opacity ?? 1) * 100)}%
+              </span>
             </div>
           </Field>
 
-          {/* Text alignment */}
-          <Field label="Text Align">
-            <div className="flex items-center gap-1">
-              {[
-                { icon: <AlignLeft size={16} />, value: 'left' },
-                { icon: <AlignCenter size={16} />, value: 'center' },
-                { icon: <AlignRight size={16} />, value: 'right' },
-              ].map(({ icon, value }) => (
-                <button
-                  key={value}
-                  onClick={() => update({ textAlign: value } as Partial<FlowNodeData>)}
-                  className={`
-                    flex items-center justify-center w-8 h-8 rounded border
-                    transition-colors cursor-pointer
-                    ${textAlign === value
-                      ? 'bg-primary/10 border-primary/30 text-primary'
-                      : 'border-border text-text-muted hover:bg-slate-50 dark:hover:bg-dk-hover'
-                    }
-                  `}
-                  title={`Align ${value}`}
-                >
-                  {icon}
-                </button>
-              ))}
+          {/* Rotation */}
+          <Field label="Rotation">
+            <div className="flex items-center gap-2">
+              <input
+                type="range"
+                min={0}
+                max={359}
+                step={1}
+                value={Math.round(data.rotation ?? 0)}
+                onChange={(e) => update({ rotation: Number(e.target.value) })}
+                className="flex-1 accent-primary"
+              />
+              <input
+                type="number"
+                min={0}
+                max={359}
+                step={1}
+                value={Math.round(data.rotation ?? 0)}
+                onChange={(e) => {
+                  let val = Number(e.target.value);
+                  val = ((val % 360) + 360) % 360;
+                  update({ rotation: val });
+                }}
+                className="w-12 text-xs text-center rounded border border-border dark:border-dk-border bg-white dark:bg-dk-input px-1 py-0.5 font-mono"
+              />
+              <span className="text-xs text-text-muted">°</span>
+              <ResetIcon
+                visible={(data.rotation ?? 0) !== 0}
+                onReset={() => update({ rotation: 0 })}
+              />
             </div>
           </Field>
         </>
       )}
 
-      {!isSectionCollapsed('block') && (
+      {/* ============ BODY STYLE ============ */}
+      <SectionHeader label="Body Style" collapsed={isSectionCollapsed('bodyStyle')} onToggle={() => toggleSection('bodyStyle')} />
+
+      {!isSectionCollapsed('bodyStyle') && (
         <>
           {/* Fill color */}
           <Field label="Fill Color">
@@ -972,97 +861,85 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, to
               ))}
             </div>
           </Field>
+        </>
+      )}
 
-          {/* Corner Radius */}
-          <Field label="Corner Radius">
-            <div className="flex items-center gap-2">
-              <input
-                type="range"
-                min={0}
-                max={50}
-                step={1}
-                value={data.borderRadius ?? 4}
-                onChange={(e) => update({ borderRadius: Number(e.target.value) })}
-                className="flex-1 accent-primary"
-              />
-              <span className="text-xs text-text-muted w-8 text-right font-mono">
-                {data.borderRadius ?? 4}px
-              </span>
-            </div>
+      {/* ============ LABEL PROPERTIES ============ */}
+      <SectionHeader label="Label" collapsed={isSectionCollapsed('label')} onToggle={() => toggleSection('label')} />
+
+      {!isSectionCollapsed('label') && (
+        <>
+          {/* Label — show \n escape chars in the field, render as actual newlines on canvas */}
+          <Field label="Text">
+            <input
+              type="text"
+              value={(data.label || '').replace(/\n/g, '\\n')}
+              onChange={(e) => update({ label: e.target.value.replace(/\\n/g, '\n') })}
+              className="w-full px-2 py-1.5 text-sm rounded border border-border bg-white dark:bg-dk-input dark:text-dk-text dark:border-dk-border
+                         focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+            />
           </Field>
 
-          {/* Opacity */}
-          <Field label="Opacity">
+          {/* Text color */}
+          <Field label="Text Color">
             <div className="flex items-center gap-2">
               <input
-                type="range"
-                min={0}
-                max={1}
-                step={0.05}
-                value={data.opacity ?? 1}
-                onChange={(e) => update({ opacity: Number(e.target.value) })}
-                className="flex-1 h-1.5 accent-primary"
-              />
-              <span className="text-xs text-text-muted w-8 text-right font-mono">
-                {Math.round((data.opacity ?? 1) * 100)}%
-              </span>
-            </div>
-          </Field>
-
-          {/* Rotation */}
-          <Field label="Rotation">
-            <div className="flex items-center gap-2">
-              <input
-                type="range"
-                min={0}
-                max={359}
-                step={1}
-                value={Math.round(data.rotation ?? 0)}
-                onChange={(e) => update({ rotation: Number(e.target.value) })}
-                className="flex-1 accent-primary"
+                type="color"
+                value={toHexColor(textColor, '#ffffff')}
+                onChange={(e) => update({ textColor: e.target.value })}
+                className="w-8 h-8 rounded border border-border cursor-pointer"
               />
               <input
-                type="number"
-                min={0}
-                max={359}
-                step={1}
-                value={Math.round(data.rotation ?? 0)}
-                onChange={(e) => {
-                  let val = Number(e.target.value);
-                  val = ((val % 360) + 360) % 360;
-                  update({ rotation: val });
-                }}
-                className="w-12 text-xs text-center rounded border border-border dark:border-dk-border bg-white dark:bg-dk-input px-1 py-0.5 font-mono"
+                type="text"
+                value={textColor}
+                onChange={(e) => update({ textColor: e.target.value })}
+                className="flex-1 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white dark:bg-dk-input dark:text-dk-text dark:border-dk-border
+                           focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
               />
-              <span className="text-xs text-text-muted">°</span>
               <ResetIcon
-                visible={(data.rotation ?? 0) !== 0}
-                onReset={() => update({ rotation: 0 })}
+                visible={!!activeStyleId && !!data.textColor}
+                onReset={() => update({ textColor: undefined })}
               />
             </div>
           </Field>
 
-          {/* Block Size */}
-          <Field label="Block Size">
+          {/* Font size */}
+          <Field label="Font Size">
             <div className="flex items-center gap-2">
+              <input
+                type="range"
+                min={8}
+                max={32}
+                value={fontSize}
+                onChange={(e) => {
+                  const newSize = Number(e.target.value);
+                  update({ fontSize: newSize });
+                  // Apply to all other selected nodes too
+                  const { selectedNodes, updateNodeData: bulkUpdate } = useFlowStore.getState();
+                  for (const nid of selectedNodes) {
+                    if (nid !== nodeId) bulkUpdate(nid, { fontSize: newSize });
+                  }
+                }}
+                className="flex-1 accent-primary"
+              />
+              <span className="text-xs text-text-muted w-8 text-right font-mono">
+                {fontSize}
+              </span>
               <button
                 onClick={() => {
                   const { selectedNodes, nodes: allNodes, updateNodeData: bulkUpdate } = useFlowStore.getState();
                   for (const nid of selectedNodes) {
                     const node = allNodes.find(n => n.id === nid);
                     if (node) {
-                      const nd = node.data as FlowNodeData;
-                      const curW = (nd as Record<string, unknown>).width as number || 160;
-                      const curH = (nd as Record<string, unknown>).height as number || 60;
-                      bulkUpdate(nid, { width: Math.max(40, curW - 20), height: Math.max(20, curH - 15) } as Partial<FlowNodeData>);
+                      const currentSize = (node.data as FlowNodeData).fontSize || 14;
+                      bulkUpdate(nid, { fontSize: Math.min(32, currentSize + 1) });
                     }
                   }
                 }}
-                className="flex items-center justify-center gap-1 flex-1 py-1.5 text-xs font-medium rounded border border-border
-                           text-text-muted hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer"
-                data-tooltip-left="Decrease block size"
+                className="p-1 rounded border border-border text-text-muted hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer"
+                data-tooltip-left="Increase font size"
               >
-                <Minus size={12} /> Smaller
+                <AArrowUp size={14} />
               </button>
               <button
                 onClick={() => {
@@ -1070,30 +947,155 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, to
                   for (const nid of selectedNodes) {
                     const node = allNodes.find(n => n.id === nid);
                     if (node) {
-                      const nd = node.data as FlowNodeData;
-                      const curW = (nd as Record<string, unknown>).width as number || 160;
-                      const curH = (nd as Record<string, unknown>).height as number || 60;
-                      bulkUpdate(nid, { width: curW + 20, height: curH + 15 } as Partial<FlowNodeData>);
+                      const currentSize = (node.data as FlowNodeData).fontSize || 14;
+                      bulkUpdate(nid, { fontSize: Math.max(8, currentSize - 1) });
                     }
                   }
                 }}
-                className="flex items-center justify-center gap-1 flex-1 py-1.5 text-xs font-medium rounded border border-border
-                           text-text-muted hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer"
-                data-tooltip-left="Increase block size"
+                className="p-1 rounded border border-border text-text-muted hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer"
+                data-tooltip-left="Decrease font size"
               >
-                <Plus size={12} /> Larger
+                <AArrowDown size={14} />
               </button>
+              <ResetIcon
+                visible={!!activeStyleId && !!data.fontSize}
+                onReset={() => update({ fontSize: undefined })}
+              />
+            </div>
+          </Field>
+
+          {/* Font weight */}
+          <Field label="Font Weight">
+            <div className="flex items-center gap-1">
+              {([
+                { value: 300, label: 'Light' },
+                { value: 400, label: 'Normal' },
+                { value: 600, label: 'Semi' },
+                { value: 700, label: 'Bold' },
+              ] as const).map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => update({ fontWeight: opt.value })}
+                  className={`flex-1 py-1.5 text-xs rounded border transition-colors cursor-pointer
+                    ${fontWeight === opt.value
+                      ? 'bg-blue-50 border-blue-300 text-blue-600 dark:bg-blue-800/15 dark:border-blue-500/50 dark:text-blue-400'
+                      : 'border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-dk-border dark:text-dk-muted dark:hover:bg-dk-hover'
+                    }`}
+                  style={{ fontWeight: opt.value }}
+                >
+                  {opt.label}
+                </button>
+              ))}
+              <ResetIcon
+                visible={!!activeStyleId && !!data.fontWeight}
+                onReset={() => update({ fontWeight: undefined })}
+              />
+            </div>
+          </Field>
+
+          {/* Text alignment */}
+          <Field label="Text Align">
+            <div className="flex items-center gap-1">
+              {[
+                { icon: <AlignLeft size={16} />, value: 'left' },
+                { icon: <AlignCenter size={16} />, value: 'center' },
+                { icon: <AlignRight size={16} />, value: 'right' },
+              ].map(({ icon, value }) => (
+                <button
+                  key={value}
+                  onClick={() => update({ textAlign: value } as Partial<FlowNodeData>)}
+                  className={`
+                    flex items-center justify-center w-8 h-8 rounded border
+                    transition-colors cursor-pointer
+                    ${textAlign === value
+                      ? 'bg-primary/10 border-primary/30 text-primary'
+                      : 'border-border text-text-muted hover:bg-slate-50 dark:hover:bg-dk-hover'
+                    }
+                  `}
+                  data-tooltip-left={`Align ${value.charAt(0).toUpperCase() + value.slice(1)}`}
+                >
+                  {icon}
+                </button>
+              ))}
             </div>
           </Field>
         </>
       )}
 
-      {/* ============ ICON STYLING ============ */}
-      {currentIcon && (
+      {/* ============ ICON ============ */}
+      <SectionHeader label="Icon" collapsed={isSectionCollapsed('icon')} onToggle={() => toggleSection('icon')} />
+
+      {!isSectionCollapsed('icon') && (
         <>
-          <SectionHeader label="Icon" collapsed={isSectionCollapsed('icon')} onToggle={() => toggleSection('icon')} />
-          {!isSectionCollapsed('icon') && (
+          {/* Icon selector */}
+          <Field label="Icon">
+            <div className="flex items-center gap-2">
+              {CurrentIconComponent && (
+                <div className="flex items-center justify-center w-8 h-8 rounded border border-border dark:border-dk-border bg-slate-50 dark:bg-dk-hover">
+                  <CurrentIconComponent size={18} className="text-slate-600 dark:text-dk-muted" />
+                </div>
+              )}
+              <button
+                onClick={() => setIconPickerOpen(!iconPickerOpen)}
+                className="px-3 py-1.5 text-xs font-medium rounded border border-border dark:border-dk-border
+                           text-text-muted hover:bg-slate-50 dark:hover:bg-dk-hover hover:text-text transition-colors cursor-pointer"
+              >
+                {currentIcon ? 'Change Icon' : 'Add Icon'}
+              </button>
+              {currentIcon && (
+                <button
+                  onClick={() => update({ icon: undefined })}
+                  className="text-xs text-red-500 hover:text-red-700 transition-colors cursor-pointer"
+                >
+                  Remove
+                </button>
+              )}
+            </div>
+            {iconPickerOpen && (
+              <IconPicker
+                currentIcon={currentIcon}
+                onSelect={(iconName) => {
+                  if (iconName === '') {
+                    update({ icon: undefined });
+                    // Collapse icon section when removing icon
+                    setAllExpanded(null);
+                    setCollapsedSections((prev) => ({ ...prev, icon: true }));
+                  } else {
+                    update({ icon: iconName });
+                  }
+                  setIconPickerOpen(false);
+                }}
+                onClose={() => setIconPickerOpen(false)}
+              />
+            )}
+          </Field>
+
+          {currentIcon && (
             <>
+              {/* Icon Position */}
+              <Field label="Icon Position">
+                <div className="flex items-center gap-1">
+                  {[
+                    { value: 'left', label: 'Left' },
+                    { value: 'right', label: 'Right' },
+                  ].map((pos) => (
+                    <button
+                      key={pos.value}
+                      onClick={() => update({ iconPosition: pos.value as 'left' | 'right' })}
+                      className={`
+                        flex-1 py-1.5 text-xs font-medium rounded border transition-colors cursor-pointer
+                        ${(data.iconPosition || 'left') === pos.value
+                          ? 'bg-blue-50 border-blue-300 text-blue-600 dark:bg-blue-800/15 dark:border-blue-500/50 dark:text-blue-400'
+                          : 'border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-dk-border dark:text-dk-muted dark:hover:bg-dk-hover'
+                        }
+                      `}
+                    >
+                      {pos.label}
+                    </button>
+                  ))}
+                </div>
+              </Field>
+
               {/* Icon Color */}
               <Field label="Icon Color">
                 <div className="flex items-center gap-2">
@@ -2174,7 +2176,7 @@ const SwimlanePanel: React.FC = React.memo(() => {
 
       {/* Generate Lane Legend button */}
       {hasAnyLanes && (
-        <div className="border-t border-border pt-3 mt-1">
+        <div className="border-t border-border pt-3 mt-1 flex flex-col gap-2">
           <button
             onClick={() => {
               const allLanes = [...config.horizontal, ...config.vertical];
@@ -2186,6 +2188,15 @@ const SwimlanePanel: React.FC = React.memo(() => {
           >
             <ListOrdered size={14} />
             Generate Lane Legend
+          </button>
+          <button
+            onClick={() => setIsCreating(true)}
+            className="flex items-center justify-center gap-1.5 w-full py-2 text-xs font-medium
+                       rounded-md border border-border text-text-muted hover:bg-slate-50
+                       dark:hover:bg-dk-hover dark:border-dk-border transition-colors cursor-pointer"
+          >
+            <Plus size={14} />
+            Recreate Swimlanes
           </button>
         </div>
       )}
@@ -2494,18 +2505,21 @@ const PropertiesPanel: React.FC = () => {
   const [edgeToggleSignal, setEdgeToggleSignal] = useState(0);
 
   // Auto-switch panel tab when selection changes (not on manual tab switch)
-  const prevSelRef = useRef({ nodes: selectedNodes.length, edges: selectedEdges.length });
+  const swimlaneSelected = useSwimlaneStore((s) => s.swimlaneSelected);
+  const prevSelRef = useRef({ nodes: selectedNodes.length, edges: selectedEdges.length, swimlane: false });
   useEffect(() => {
     const prev = prevSelRef.current;
-    const changed = selectedNodes.length !== prev.nodes || selectedEdges.length !== prev.edges;
-    prevSelRef.current = { nodes: selectedNodes.length, edges: selectedEdges.length };
+    const changed = selectedNodes.length !== prev.nodes || selectedEdges.length !== prev.edges || swimlaneSelected !== prev.swimlane;
+    prevSelRef.current = { nodes: selectedNodes.length, edges: selectedEdges.length, swimlane: swimlaneSelected };
     if (!changed) return;
-    if (selectedEdges.length > 0) {
+    if (swimlaneSelected && selectedNodes.length === 0 && selectedEdges.length === 0) {
+      setActivePanelTab('lane');
+    } else if (selectedEdges.length > 0) {
       setActivePanelTab('edge');
     } else if (selectedNodes.length > 0) {
       setActivePanelTab('node');
     }
-  }, [selectedEdges.length, selectedNodes.length, activePanelTab, setActivePanelTab]);
+  }, [selectedEdges.length, selectedNodes.length, swimlaneSelected, activePanelTab, setActivePanelTab]);
 
   return (
     <div className="flex shrink-0">

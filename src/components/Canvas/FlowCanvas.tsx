@@ -729,6 +729,8 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
     setEdgeMenu(null);
     setSelectionMenu(null);
     useUIStore.getState().clearPuckSelection();
+    // Deselect swimlane on pane click (explicit user action)
+    useSwimlaneStore.getState().setSwimlaneSelected(false);
   }, []);
 
   // ---- Canvas context menu handlers ----------------------------------------
@@ -1305,10 +1307,7 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
     const { config: slConfig } = slStore;
     const hasLanes = slConfig.horizontal.length > 0 || slConfig.vertical.length > 0;
 
-    if (selNodes.length === 0) {
-      // Deselect swimlane when all nodes are deselected
-      if (hasLanes) slStore.setSwimlaneSelected(false);
-    } else if (hasLanes && selNodes.length >= 2) {
+    if (hasLanes && selNodes.length >= 2) {
       // Auto-select swimlane when marquee selection encompasses the ENTIRE swimlane.
       // Check: bounding box of selected nodes must fully contain swimlane container bounds.
       const offset = slStore.containerOffset;
@@ -1400,10 +1399,12 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
 
   return (
     <div ref={reactFlowWrapper} data-charthero-canvas className={`w-full h-full flex flex-col ${presentationMode ? 'presentation-mode' : ''}`} style={{ backgroundColor: resolveCanvasBackground(canvasColorOverride, darkMode, activeStyleId ? diagramStyles[activeStyleId] ?? null : null) }}>
-      {/* Top banner — rendered outside ReactFlow so it pushes content down */}
+      {/* Capture area — wraps banners + canvas for export capture (toPng targets this) */}
+      <div data-charthero-capture-area className="flex-1 min-h-0 flex flex-col" style={{ isolation: 'isolate' }}>
+      {/* Top banner */}
       {topBanner.enabled && <BannerBar position="top" config={topBanner} />}
 
-      {/* Canvas area — takes remaining space */}
+      {/* Canvas area — viewport calculations and swimlane siblings live here */}
       <div data-charthero-canvas-area className="flex-1 min-h-0 relative" onContextMenu={presentationMode ? (e) => e.preventDefault() : onWrapperContextMenu} onWheel={presentationMode ? undefined : onWheelHandler} style={{ cursor: formatPainterActive ? FORMAT_PAINTER_CURSOR : undefined, isolation: 'isolate' }}>
       {/* Format painter active indicator */}
       {formatPainterActive && (
@@ -1698,8 +1699,10 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
 
       </div>{/* end canvas-area */}
 
-      {/* Bottom banner — rendered outside ReactFlow so it pushes content up */}
+      {/* Bottom banner */}
       {bottomBanner.enabled && <BannerBar position="bottom" config={bottomBanner} />}
+
+      </div>{/* end capture-area */}
 
       {/* Status bar at very bottom, below banners */}
       {!presentationMode && <StatusBar />}

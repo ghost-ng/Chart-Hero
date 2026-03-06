@@ -2,6 +2,7 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { GripVertical, Eye, Palette, Pencil, Trash2, EyeClosed, ChevronRight, Check } from 'lucide-react';
 import { useSwimlaneStore, type SwimlaneOrientation } from '../../store/swimlaneStore';
+import { useUIStore } from '../../store/uiStore';
 
 // ---------------------------------------------------------------------------
 // Color palette for quick lane color changes
@@ -509,6 +510,8 @@ const LaneHeader: React.FC<LaneHeaderProps> = ({
     // Don't select on double-click (that edits label)
     if (e.detail >= 2) return;
     useSwimlaneStore.getState().setSwimlaneSelected(true);
+    // Switch properties panel to swimlane tab
+    useUIStore.getState().setActivePanelTab('lane');
   }, []);
 
   // ---- Interactive mode: invisible content above ReactFlow (z:3) ----

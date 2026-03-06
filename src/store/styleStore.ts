@@ -1,6 +1,9 @@
 import { create, type StoreApi } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+import { diagramStyles } from '../styles/diagramStyles';
+import { useSwimlaneStore } from './swimlaneStore';
+
 // ---------------------------------------------------------------------------
 // Inline types
 // ---------------------------------------------------------------------------
@@ -77,7 +80,31 @@ export const useStyleStore = create<StyleState>()(
       canvasColorOverride: null,
 
       // -- actions --------------------------------------------------
-      setStyle: (styleId) => set({ activeStyleId: styleId, canvasColorOverride: null }),
+      setStyle: (styleId) => {
+        const style = diagramStyles[styleId];
+        const updates: Partial<StyleState> = { activeStyleId: styleId, canvasColorOverride: null };
+        // If the style defines a default palette, activate it
+        if (style?.defaultPaletteId) {
+          updates.activePaletteId = style.defaultPaletteId;
+        }
+        set(updates);
+
+        // Update existing swimlane colors to match the style's accent palette
+        if (style && style.accentColors.length > 0) {
+          const swimlane = useSwimlaneStore.getState();
+          const { horizontal, vertical } = swimlane.config;
+          horizontal.forEach((lane, i) => {
+            swimlane.updateLane('horizontal', lane.id, {
+              color: style.accentColors[i % style.accentColors.length],
+            });
+          });
+          vertical.forEach((lane, i) => {
+            swimlane.updateLane('vertical', lane.id, {
+              color: style.accentColors[(horizontal.length + i) % style.accentColors.length],
+            });
+          });
+        }
+      },
 
       clearStyle: () => set({ activeStyleId: null, canvasColorOverride: null }),
 

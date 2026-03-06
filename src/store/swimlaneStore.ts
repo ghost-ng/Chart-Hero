@@ -58,6 +58,10 @@ export interface SwimlaneConfig {
   titleColor?: string;
   /** Container title font family */
   titleFontFamily?: string;
+  /** Width of the container when not determined by vertical lanes (default 800) */
+  containerWidth?: number;
+  /** Height of the container when not determined by horizontal lanes (default 400) */
+  containerHeight?: number;
 }
 
 export interface SwimlaneState {
@@ -88,9 +92,13 @@ export interface SwimlaneState {
   updateDividerStyle: (patch: Partial<DividerConfig>) => void;
   updateLabelConfig: (patch: { labelFontSize?: number; labelRotation?: number; hHeaderWidth?: number; vHeaderHeight?: number }) => void;
   updateTitleConfig: (patch: { titleFontSize?: number; titleColor?: string; titleFontFamily?: string }) => void;
+  updateContainerSize: (patch: { containerWidth?: number; containerHeight?: number }) => void;
 
   /** Proportionally resize all visible lanes in the given orientation to fit a new total size */
   resizeLanes: (orientation: SwimlaneOrientation, newTotalSize: number) => void;
+
+  /** Remove all lanes (horizontal + vertical) and deselect */
+  clearAllLanes: () => void;
 
   setIsCreating: (creating: boolean) => void;
   setEditingLaneId: (laneId: string | null) => void;
@@ -278,6 +286,17 @@ export const useSwimlaneStore = create<SwimlaneState>()(
       });
     },
 
+    updateContainerSize: (patch) => {
+      set((state) => {
+        if (patch.containerWidth !== undefined) {
+          state.config.containerWidth = patch.containerWidth;
+        }
+        if (patch.containerHeight !== undefined) {
+          state.config.containerHeight = patch.containerHeight;
+        }
+      });
+    },
+
     resizeLanes: (orientation, newTotalSize) => {
       set((state) => {
         const lanes = getLanes(state.config, orientation);
@@ -295,6 +314,14 @@ export const useSwimlaneStore = create<SwimlaneState>()(
         for (const lane of resizable) {
           lane.size = Math.max(MIN_LANE, Math.round(lane.size * scale));
         }
+      });
+    },
+
+    clearAllLanes: () => {
+      set((state) => {
+        state.config.horizontal = [];
+        state.config.vertical = [];
+        state.swimlaneSelected = false;
       });
     },
 

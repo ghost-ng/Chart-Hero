@@ -41,11 +41,12 @@ import {
 
 /**
  * Find the canvas element to capture.
- * Prefers `[data-charthero-canvas-area]` which wraps both the swimlane layer
- * AND the `.react-flow` viewport — so swimlanes are included in exports.
- * Falls back to `.react-flow` if the wrapper isn't found.
+ * Prefers `[data-charthero-capture-area]` which wraps banners + canvas area
+ * so banners are included in exports. Falls back to canvas-area then .react-flow.
  */
 export function getReactFlowElement(): HTMLElement {
+  const captureArea = document.querySelector<HTMLElement>('[data-charthero-capture-area]');
+  if (captureArea) return captureArea;
   const canvasArea = document.querySelector<HTMLElement>('[data-charthero-canvas-area]');
   if (canvasArea) return canvasArea;
   const container = document.querySelector<HTMLElement>('.react-flow');
@@ -170,12 +171,13 @@ export async function exportAsSvg(options: SvgExportOptions): Promise<void> {
       padding: `${padding}px`,
     },
     filter: (node) => {
-      // Exclude minimap, controls, and panel overlays from the SVG
+      // Exclude minimap, controls, panel overlays, and export-ignored elements from the SVG
       const el = node as HTMLElement;
       if (!el.classList) return true;
       if (el.classList.contains('react-flow__minimap')) return false;
       if (el.classList.contains('react-flow__controls')) return false;
       if (el.classList.contains('react-flow__panel')) return false;
+      if (el.hasAttribute && el.hasAttribute('data-export-ignore')) return false;
       return true;
     },
   });
@@ -1345,6 +1347,12 @@ export function buildJsonExportData(options: JsonExportOptions): Record<string, 
     if (typeof swimlaneState.config.vHeaderHeight === 'number') {
       swimlaneExport.vHeaderHeight = swimlaneState.config.vHeaderHeight;
     }
+    if (typeof swimlaneState.config.containerWidth === 'number') {
+      swimlaneExport.containerWidth = swimlaneState.config.containerWidth;
+    }
+    if (typeof swimlaneState.config.containerHeight === 'number') {
+      swimlaneExport.containerHeight = swimlaneState.config.containerHeight;
+    }
     exportData.swimlanes = swimlaneExport;
   }
 
@@ -1886,6 +1894,13 @@ export function importFromJson(
       }
       if (typeof sw.vHeaderHeight === 'number') {
         store.updateLabelConfig({ vHeaderHeight: sw.vHeaderHeight });
+      }
+      // Restore container dimensions
+      if (typeof sw.containerWidth === 'number' || typeof sw.containerHeight === 'number') {
+        store.updateContainerSize({
+          containerWidth: typeof sw.containerWidth === 'number' ? sw.containerWidth : undefined,
+          containerHeight: typeof sw.containerHeight === 'number' ? sw.containerHeight : undefined,
+        });
       }
     }
   }

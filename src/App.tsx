@@ -94,6 +94,11 @@ const App: React.FC = () => {
     for (const id of selectedNodes) {
       removeNode(id);
     }
+    // Also clear swimlanes if the swimlane container is selected
+    const slStore = useSwimlaneStore.getState();
+    if (slStore.swimlaneSelected) {
+      slStore.clearAllLanes();
+    }
   }, []);
 
   // Select all

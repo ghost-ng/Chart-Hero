@@ -24,6 +24,8 @@ const MIN_V_HEADER_HEIGHT = 24; // px - minimum height of vertical lane headers
 const CORNER_HANDLE_SIZE = 10; // px - size of corner resize handles
 const MIN_CONTAINER_WIDTH = 200; // px - minimum width when corner-resizing
 const MIN_CONTAINER_HEIGHT = 150; // px - minimum height when corner-resizing
+const DEFAULT_CONTAINER_WIDTH = 800; // px - default width when not determined by vertical lanes
+const DEFAULT_CONTAINER_HEIGHT = 400; // px - default height when not determined by horizontal lanes
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -257,6 +259,120 @@ const HeaderResizeHandle: React.FC<HeaderResizeHandleProps> = ({
         cursor: 'row-resize',
         pointerEvents: 'auto',
         zIndex: 12,
+      };
+
+  return <div style={style} onMouseDown={handleMouseDown} />;
+};
+
+// ---------------------------------------------------------------------------
+// ContainerEdgeResizeHandle — drag top/bottom (vertical lanes) or left/right
+// (horizontal lanes) to resize the cross-axis container dimension
+// ---------------------------------------------------------------------------
+
+interface ContainerEdgeResizeHandleProps {
+  /** Which edge to place the handle on */
+  edge: 'top' | 'bottom' | 'left' | 'right';
+  /** Total width of the container (for horizontal handles) */
+  totalWidth: number;
+  /** Total height of the container (for vertical handles) */
+  totalHeight: number;
+  /** Current viewport zoom */
+  zoom: number;
+}
+
+const ContainerEdgeResizeHandle: React.FC<ContainerEdgeResizeHandleProps> = ({
+  edge,
+  totalWidth,
+  totalHeight,
+  zoom,
+}) => {
+  const startRef = useRef<{
+    clientPos: number;
+    startSize: number;
+    startOffset: { x: number; y: number };
+  } | null>(null);
+
+  const isVerticalEdge = edge === 'top' || edge === 'bottom';
+  const isReverse = edge === 'top' || edge === 'left';
+
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      e.preventDefault();
+
+      const store = useSwimlaneStore.getState();
+      const clientPos = isVerticalEdge ? e.clientY : e.clientX;
+      const startSize = isVerticalEdge ? totalHeight : totalWidth;
+      startRef.current = { clientPos, startSize, startOffset: { ...store.containerOffset } };
+
+      const onMouseMove = (moveEvent: MouseEvent) => {
+        if (!startRef.current) return;
+        const currentPos = isVerticalEdge ? moveEvent.clientY : moveEvent.clientX;
+        const deltaScreen = currentPos - startRef.current.clientPos;
+        const deltaFlow = deltaScreen / zoom;
+
+        const minSize = isVerticalEdge ? MIN_CONTAINER_HEIGHT : MIN_CONTAINER_WIDTH;
+
+        if (isReverse) {
+          // Dragging top/left: grow means dragging outward (negative delta)
+          const newSize = Math.max(minSize, startRef.current.startSize - deltaFlow);
+          const actualDelta = startRef.current.startSize - newSize;
+          const newOffset = { ...startRef.current.startOffset };
+          if (isVerticalEdge) {
+            newOffset.y = startRef.current.startOffset.y + actualDelta;
+            useSwimlaneStore.getState().updateContainerSize({ containerHeight: newSize });
+          } else {
+            newOffset.x = startRef.current.startOffset.x + actualDelta;
+            useSwimlaneStore.getState().updateContainerSize({ containerWidth: newSize });
+          }
+          useSwimlaneStore.getState().setContainerOffset(newOffset);
+        } else {
+          // Dragging bottom/right: grow means positive delta
+          const newSize = Math.max(minSize, startRef.current.startSize + deltaFlow);
+          if (isVerticalEdge) {
+            useSwimlaneStore.getState().updateContainerSize({ containerHeight: newSize });
+          } else {
+            useSwimlaneStore.getState().updateContainerSize({ containerWidth: newSize });
+          }
+        }
+      };
+
+      const onMouseUp = () => {
+        startRef.current = null;
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+      };
+
+      document.body.style.cursor = isVerticalEdge ? 'row-resize' : 'col-resize';
+      document.body.style.userSelect = 'none';
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', onMouseUp);
+    },
+    [edge, isVerticalEdge, isReverse, totalWidth, totalHeight, zoom],
+  );
+
+  const style: React.CSSProperties = isVerticalEdge
+    ? {
+        position: 'absolute',
+        left: 0,
+        top: (edge === 'top' ? 0 : totalHeight) - RESIZE_HIT_AREA / 2,
+        width: totalWidth,
+        height: RESIZE_HIT_AREA,
+        cursor: 'row-resize',
+        pointerEvents: 'auto',
+        zIndex: 10,
+      }
+    : {
+        position: 'absolute',
+        left: (edge === 'left' ? 0 : totalWidth) - RESIZE_HIT_AREA / 2,
+        top: 0,
+        width: RESIZE_HIT_AREA,
+        height: totalHeight,
+        cursor: 'col-resize',
+        pointerEvents: 'auto',
+        zIndex: 10,
       };
 
   return <div style={style} onMouseDown={handleMouseDown} />;
@@ -563,10 +679,10 @@ const SwimlaneLayer: React.FC = () => {
   // Total dimensions
   const totalWidth = hasVLanes
     ? vBounds.reduce((sum, b) => Math.max(sum, b.offset + b.size), 0)
-    : 800;
+    : (config.containerWidth ?? DEFAULT_CONTAINER_WIDTH);
   const totalHeight = hasHLanes
     ? hBounds.reduce((sum, b) => Math.max(sum, b.offset + b.size), 0)
-    : 800;
+    : (config.containerHeight ?? DEFAULT_CONTAINER_HEIGHT);
 
   return (
     <div
@@ -864,15 +980,16 @@ const SwimlaneHeaderLayerInner: React.FC = () => {
 
   const totalWidth = hasVLanes
     ? vBounds.reduce((sum, b) => Math.max(sum, b.offset + b.size), 0)
-    : 800;
+    : (config.containerWidth ?? DEFAULT_CONTAINER_WIDTH);
   const totalHeight = hasHLanes
     ? hBounds.reduce((sum, b) => Math.max(sum, b.offset + b.size), 0)
-    : 800;
+    : (config.containerHeight ?? DEFAULT_CONTAINER_HEIGHT);
 
   return (
     <div
       className="absolute inset-0 pointer-events-none overflow-hidden"
       style={{ zIndex: 3 }}
+      data-export-ignore
     >
       <div
         data-swimlane-viewport
@@ -994,10 +1111,10 @@ const SwimlaneResizeOverlayInner: React.FC<{ readOnly?: boolean }> = ({ readOnly
 
   const totalWidth = hasVLanes
     ? vBounds.reduce((sum, b) => Math.max(sum, b.offset + b.size), 0)
-    : 800;
+    : (config.containerWidth ?? DEFAULT_CONTAINER_WIDTH);
   const totalHeight = hasHLanes
     ? hBounds.reduce((sum, b) => Math.max(sum, b.offset + b.size), 0)
-    : 800;
+    : (config.containerHeight ?? DEFAULT_CONTAINER_HEIGHT);
 
   // Compute header offsets for corner resize proportional calculation
   const headerOffsetX = hasVLanes ? (hasHLanes ? H_HEADER_WIDTH : 0) : 0;
@@ -1010,6 +1127,7 @@ const SwimlaneResizeOverlayInner: React.FC<{ readOnly?: boolean }> = ({ readOnly
     <div
       className="absolute inset-0 pointer-events-none overflow-hidden"
       style={{ zIndex: 5 }}
+      data-export-ignore
     >
       <div
         ref={containerRef}
@@ -1173,6 +1291,42 @@ const SwimlaneResizeOverlayInner: React.FC<{ readOnly?: boolean }> = ({ readOnly
             zoom={viewport.zoom}
             currentSize={V_HEADER_HEIGHT}
           />
+        )}
+
+        {/* ---- Container edge resize handles (cross-axis dimension) ---- */}
+        {/* For vertical-only lanes: resize container height from top/bottom edges */}
+        {hasVLanes && !hasHLanes && (
+          <>
+            <ContainerEdgeResizeHandle
+              edge="top"
+              totalWidth={totalWidth}
+              totalHeight={totalHeight}
+              zoom={viewport.zoom}
+            />
+            <ContainerEdgeResizeHandle
+              edge="bottom"
+              totalWidth={totalWidth}
+              totalHeight={totalHeight}
+              zoom={viewport.zoom}
+            />
+          </>
+        )}
+        {/* For horizontal-only lanes: resize container width from left/right edges */}
+        {hasHLanes && !hasVLanes && (
+          <>
+            <ContainerEdgeResizeHandle
+              edge="left"
+              totalWidth={totalWidth}
+              totalHeight={totalHeight}
+              zoom={viewport.zoom}
+            />
+            <ContainerEdgeResizeHandle
+              edge="right"
+              totalWidth={totalWidth}
+              totalHeight={totalHeight}
+              zoom={viewport.zoom}
+            />
+          </>
         )}
 
         {/* Move handle is now rendered in SwimlaneHeaderLayer for correct z-ordering */}

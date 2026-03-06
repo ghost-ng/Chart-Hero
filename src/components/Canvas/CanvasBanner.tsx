@@ -318,6 +318,7 @@ export const BannerBar: React.FC<BannerBarProps> = ({ position, config }) => {
 
         {/* Resize handle -- sits at the inner edge of the banner (bottom for top, top for bottom) */}
         <div
+          data-export-ignore
           onMouseDown={handleResizeStart}
           style={{
             position: 'absolute',

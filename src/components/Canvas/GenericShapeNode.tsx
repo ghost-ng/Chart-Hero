@@ -456,7 +456,6 @@ const StatusBadge: React.FC<StatusBadgeProps & { nodeId: string; puckId: string;
       onPointerDown={handlePointerDown}
       onClick={(e) => e.stopPropagation()}
       onContextMenu={handleContextMenu}
-      data-tooltip="Click to select · Shift+click multi-select · Drag to move · Ctrl+drag to resize"
       style={{
         position: 'absolute',
         ...hitPositionStyle,
@@ -621,10 +620,8 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
 
   const commitEdit = useCallback(() => {
     const trimmed = editValue.trim();
-    if (trimmed && trimmed !== nodeData.label) {
+    if (trimmed !== nodeData.label) {
       updateNodeData(id, { label: trimmed });
-    } else {
-      setEditValue(nodeData.label);
     }
     setIsEditingNode(null);
   }, [editValue, nodeData.label, id, updateNodeData, setIsEditingNode]);
