@@ -114,7 +114,7 @@ interface NodePropsTabProps {
 const SectionHeader: React.FC<{ label: string; collapsed: boolean; onToggle: () => void }> = ({ label, collapsed, onToggle }) => (
   <button
     onClick={onToggle}
-    className="flex items-center justify-between w-full text-[10px] font-semibold uppercase tracking-wider text-text-muted border-b border-border pb-1 mt-1 cursor-pointer hover:text-text transition-colors"
+    className="flex items-center justify-between w-full text-[10px] font-bold uppercase tracking-wider text-text-muted border-b border-border pb-1 mt-1 cursor-pointer hover:text-text transition-colors"
   >
     {label}
     <ChevronDown
@@ -1644,10 +1644,11 @@ const SwimlanePanel: React.FC = React.memo(() => {
         collapsed: false,
         size: orientation === 'horizontal' ? 200 : 250,
         order: lanes.length,
+        ...(darkMode ? { colorOpacity: 30 } : {}),
       };
       addLane(orientation, newLane);
     },
-    [hLanes, vLanes, addLane],
+    [hLanes, vLanes, addLane, darkMode],
   );
 
   const handleToggleMatrix = useCallback(() => {
@@ -1666,6 +1667,7 @@ const SwimlanePanel: React.FC = React.memo(() => {
           collapsed: false,
           size: 250,
           order: i,
+          ...(darkMode ? { colorOpacity: 30 } : {}),
         };
         addLane('vertical', newLane);
       }
@@ -1679,11 +1681,12 @@ const SwimlanePanel: React.FC = React.memo(() => {
           collapsed: false,
           size: 200,
           order: i,
+          ...(darkMode ? { colorOpacity: 30 } : {}),
         };
         addLane('horizontal', newLane);
       }
     }
-  }, [isMatrix, hasHLanes, hasVLanes, hLanes, vLanes, addLane, removeLane]);
+  }, [isMatrix, hasHLanes, hasVLanes, hLanes, vLanes, addLane, removeLane, darkMode]);
 
   // Render a lane list for a given orientation
   const renderLaneList = (lanes: SwimlaneItem[], orientation: SwimlaneOrientation) => (
@@ -1691,7 +1694,7 @@ const SwimlanePanel: React.FC = React.memo(() => {
       {[...lanes].sort((a, b) => a.order - b.order).map((lane) => (
         <div
           key={lane.id}
-          className={`flex flex-col gap-1 px-2 py-1.5 rounded-md border border-border dark:border-dk-border bg-white/50 dark:bg-dk-surface/50 ${lane.hidden ? 'opacity-50' : ''}`}
+          className={`flex flex-col gap-1 px-2 py-1.5 rounded-md border border-border dark:border-dk-border bg-white/50 dark:bg-dk-hover/80 ${lane.hidden ? 'opacity-50' : ''}`}
         >
           {/* Row 1: Label */}
           <input
@@ -1700,10 +1703,10 @@ const SwimlanePanel: React.FC = React.memo(() => {
             onChange={(e) => updateLane(orientation, lane.id, { label: e.target.value })}
             className="w-full px-1.5 py-0.5 text-xs font-medium rounded border border-transparent
                        hover:border-border focus:border-primary focus:outline-none
-                       bg-transparent"
+                       bg-transparent text-text dark:text-text-dark"
           />
           {/* Row 2: Attribute controls */}
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-0.5">
             {/* Hide lane + all contents toggle */}
             <Tip label={lane.hidden ? 'Show lane & contents' : 'Hide lane & contents'}>
               <button
@@ -1727,12 +1730,12 @@ const SwimlanePanel: React.FC = React.memo(() => {
               />
             </Tip>
             {/* Opacity slider */}
-            <Tip label={`Opacity: ${lane.colorOpacity ?? (darkMode ? 12 : 15)}%`}>
+            <Tip label={`Opacity: ${lane.colorOpacity ?? (darkMode ? 35 : 15)}%`}>
               <input
                 type="range"
                 min={0}
                 max={100}
-                value={lane.colorOpacity ?? (darkMode ? 12 : 15)}
+                value={lane.colorOpacity ?? (darkMode ? 35 : 15)}
                 onChange={(e) => updateLane(orientation, lane.id, { colorOpacity: Number(e.target.value) })}
                 className="flex-1 min-w-0 h-3 cursor-pointer accent-primary"
               />

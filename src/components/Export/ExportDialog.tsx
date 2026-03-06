@@ -619,6 +619,7 @@ function overrideViewportForCapture(
   const rf = getReactFlowInstance();
   if (!rf) return null;
 
+  // Always use canvas-area for viewport sizing (not capture-area which includes banners)
   const captureElement = document.querySelector<HTMLElement>('[data-charthero-canvas-area]')
     ?? document.querySelector<HTMLElement>('.react-flow');
   const vpElement = document.querySelector<HTMLElement>('.react-flow__viewport');
@@ -630,7 +631,6 @@ function overrideViewportForCapture(
     : allNodes;
 
   // When swimlane is selected and scope is 'selected', include all nodes
-  // (the swimlane visuals wrap the full diagram area)
   const swimlaneIsSelected = useSwimlaneStore.getState().swimlaneSelected;
   const effectiveNodes = (scope === 'selected' && swimlaneIsSelected && targetNodes.length === 0)
     ? allNodes
@@ -638,6 +638,37 @@ function overrideViewportForCapture(
   if (effectiveNodes.length === 0) return null;
 
   const bounds = getNodesBounds(effectiveNodes);
+
+  // Extend bounds to include swimlane container when lanes exist
+  const slState = useSwimlaneStore.getState();
+  const hasLanes = slState.config.horizontal.length > 0 || slState.config.vertical.length > 0;
+  if (hasLanes && scope === 'all') {
+    const co = slState.containerOffset;
+    // Compute swimlane total size from lane items
+    const hLanes = slState.config.horizontal.filter(l => !l.hidden);
+    const vLanes = slState.config.vertical.filter(l => !l.hidden);
+    const hHeaderW = slState.config.hHeaderWidth ?? 48;
+    const vHeaderH = slState.config.vHeaderHeight ?? 32;
+    const totalH = hLanes.reduce((s, l) => s + (l.collapsed ? 32 : l.size), 0);
+    const totalW = vLanes.reduce((s, l) => s + (l.collapsed ? 32 : l.size), 0);
+    const slWidth = vLanes.length > 0 ? totalW : (slState.config.containerWidth ?? 800);
+    const slHeight = hLanes.length > 0 ? totalH : (slState.config.containerHeight ?? 400);
+    // Swimlane bounding box in flow coordinates (include headers)
+    const slLeft = co.x - (hLanes.length > 0 ? hHeaderW : 0);
+    const slTop = co.y - (vLanes.length > 0 ? vHeaderH : 0);
+    const slRight = co.x + slWidth;
+    const slBottom = co.y + slHeight;
+    // Extend bounds to encompass the swimlane container
+    const bLeft = Math.min(bounds.x, slLeft);
+    const bTop = Math.min(bounds.y, slTop);
+    const bRight = Math.max(bounds.x + bounds.width, slRight);
+    const bBottom = Math.max(bounds.y + bounds.height, slBottom);
+    bounds.x = bLeft;
+    bounds.y = bTop;
+    bounds.width = bRight - bLeft;
+    bounds.height = bBottom - bTop;
+  }
+
   const { width, height } = captureElement.getBoundingClientRect();
   const padding = scope === 'selected' ? 0.1 : 0.05;
   const { x, y, zoom } = getViewportForBounds(bounds, width, height, 0.1, 2, padding);
@@ -647,7 +678,7 @@ function overrideViewportForCapture(
 
   // Also override swimlane layer transforms — they compute their own transform
   // from useViewport() React state, but we only changed the DOM. Recompute to match.
-  const containerOffset = useSwimlaneStore.getState().containerOffset;
+  const containerOffset = slState.containerOffset;
   const swimlaneTransform = `translate(${x + containerOffset.x * zoom}px, ${y + containerOffset.y * zoom}px) scale(${zoom})`;
   const swimlaneVpEls = document.querySelectorAll<HTMLElement>('[data-swimlane-viewport]');
   const originalSwimlaneTransforms: string[] = [];
@@ -656,11 +687,23 @@ function overrideViewportForCapture(
     el.style.transform = swimlaneTransform;
   });
 
+  // Temporarily remove overflow:hidden from swimlane layer roots so content isn't clipped
+  const overflowRestorers: (() => void)[] = [];
+  swimlaneVpEls.forEach((vpEl) => {
+    const root = vpEl.parentElement;
+    if (root) {
+      const prev = root.style.overflow;
+      root.style.overflow = 'visible';
+      overflowRestorers.push(() => { root.style.overflow = prev; });
+    }
+  });
+
   return () => {
     vpElement.style.transform = originalTransform;
     swimlaneVpEls.forEach((el, i) => {
       el.style.transform = originalSwimlaneTransforms[i];
     });
+    for (const r of overflowRestorers) r();
   };
 }
 
@@ -752,7 +795,7 @@ const ExportDialog: React.FC = () => {
       }
 
       try {
-        const element = getReactFlowElement();
+        const element = getReactFlowElement(true);
         // Use transparent bg if PNG with transparentBackground checked
         const bgColor =
           lastFormat === 'png' && (currentOpts as { transparentBackground?: boolean }).transparentBackground

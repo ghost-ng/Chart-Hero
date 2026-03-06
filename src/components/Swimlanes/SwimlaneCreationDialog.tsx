@@ -44,8 +44,12 @@ const SwimlaneCreationDialog: React.FC = () => {
   const config = useSwimlaneStore((s) => s.config);
   const setOrientation = useSwimlaneStore((s) => s.setOrientation);
   const setContainerTitle = useSwimlaneStore((s) => s.setContainerTitle);
+  const clearAllLanes = useSwimlaneStore((s) => s.clearAllLanes);
   const darkMode = useStyleStore((s) => s.darkMode);
   const activeStyleId = useStyleStore((s) => s.activeStyleId);
+
+  // Whether there are existing lanes (determines whether to show Append option)
+  const hasExistingLanes = config.horizontal.length > 0 || config.vertical.length > 0;
 
   // Use the active diagram style's accent colors when available, otherwise fall back to LANE_PALETTE
   const activePalette = React.useMemo(() => {
@@ -79,10 +83,16 @@ const SwimlaneCreationDialog: React.FC = () => {
     resetForm();
   }, [setIsCreating, resetForm]);
 
-  const handleCreate = useCallback(() => {
-    // Append new lanes alongside existing ones (don't clear existing)
-    const existingHCount = config.horizontal.length;
-    const existingVCount = config.vertical.length;
+  /** Core creation logic. When `mode` is 'append', lanes are added to existing.
+   *  When 'createNew', existing lanes are cleared first. */
+  const handleCreate = useCallback((mode: 'append' | 'createNew') => {
+    // Clear existing lanes when creating new
+    if (mode === 'createNew') {
+      clearAllLanes();
+    }
+
+    const existingHCount = mode === 'createNew' ? 0 : config.horizontal.length;
+    const existingVCount = mode === 'createNew' ? 0 : config.vertical.length;
 
     // Parse labels
     const parsedLabels = labels
@@ -106,6 +116,7 @@ const SwimlaneCreationDialog: React.FC = () => {
           collapsed: false,
           size: prefix === 'Row' ? 200 : 250,
           order: orderOffset + i,
+          ...(darkMode ? { colorOpacity: 30 } : {}),
         });
       }
       return items;
@@ -184,8 +195,10 @@ const SwimlaneCreationDialog: React.FC = () => {
     setContainerTitle,
     setOrientation,
     addLane,
+    clearAllLanes,
     handleClose,
     activePalette,
+    darkMode,
   ]);
 
   if (!isCreating) return null;
@@ -381,12 +394,23 @@ const SwimlaneCreationDialog: React.FC = () => {
           >
             Cancel
           </button>
+          {hasExistingLanes && (
+            <button
+              onClick={() => handleCreate('append')}
+              className={`
+                px-4 py-1.5 text-xs font-medium rounded-md border transition-colors cursor-pointer
+                border-primary/40 text-primary ${darkMode ? 'hover:bg-primary/15' : 'hover:bg-primary/10'}
+              `}
+            >
+              Append Lanes
+            </button>
+          )}
           <button
-            onClick={handleCreate}
+            onClick={() => handleCreate('createNew')}
             className="px-4 py-1.5 text-xs font-medium rounded-md bg-primary text-white
                        hover:bg-primary-hover transition-colors cursor-pointer"
           >
-            Create
+            {hasExistingLanes ? 'Create New' : 'Create'}
           </button>
         </div>
       </div>

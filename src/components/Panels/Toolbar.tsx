@@ -59,6 +59,7 @@ import {
   Layers,
   PointerOff,
   BoxSelect,
+  Spline,
 } from 'lucide-react';
 
 import { useUIStore } from '../../store/uiStore';
@@ -383,6 +384,11 @@ const Toolbar: React.FC<ToolbarProps> = ({
   const [snapOptionsOpen, setSnapOptionsOpen] = useState(false);
   // Select menu dropdown state
   const [selectMenuOpen, setSelectMenuOpen] = useState(false);
+  // Connector type dropdown state
+  const [connectorMenuOpen, setConnectorMenuOpen] = useState(false);
+  const defaultEdgeType = useUIStore((s) => s.defaultEdgeType);
+  const setDefaultEdgeType = useUIStore((s) => s.setDefaultEdgeType);
+  const connectorMenuRef = useRef<HTMLDivElement>(null);
   const gridDropdownRef = useRef<HTMLDivElement>(null);
   const snapDropdownRef = useRef<HTMLDivElement>(null);
   const selectMenuRef = useRef<HTMLDivElement>(null);
@@ -1192,6 +1198,41 @@ const Toolbar: React.FC<ToolbarProps> = ({
           )}
         </div>
         <ToolbarButton icon={<Maximize size={iconSize} />} tooltip="Fit View" onClick={onFitView} />
+
+        {/* Connector Type dropdown */}
+        <div className="relative" ref={connectorMenuRef}>
+          <ToolbarButton
+            icon={<Spline size={iconSize} />}
+            tooltip="Connector Type"
+            onClick={() => setConnectorMenuOpen(!connectorMenuOpen)}
+            active={connectorMenuOpen}
+          />
+          {connectorMenuOpen && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setConnectorMenuOpen(false)} />
+              <div className="absolute top-full left-0 mt-1 bg-white dark:bg-dk-panel border border-slate-200 dark:border-dk-border rounded-lg shadow-lg p-1 z-50 w-40">
+                {([
+                  { value: 'smoothstep', label: 'Smooth Step' },
+                  { value: 'bezier', label: 'Bezier' },
+                  { value: 'step', label: 'Step' },
+                  { value: 'straight', label: 'Straight' },
+                ] as const).map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => { setDefaultEdgeType(opt.value); setConnectorMenuOpen(false); }}
+                    className={`w-full flex items-center gap-2 text-left text-xs px-2 py-1.5 rounded transition-colors cursor-pointer ${
+                      defaultEdgeType === opt.value
+                        ? 'bg-primary/10 text-primary font-medium'
+                        : 'text-slate-600 dark:text-dk-muted hover:bg-slate-100 dark:hover:bg-dk-hover'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
 
         {/* Grid Options dropdown */}
         <div className="relative" ref={gridDropdownRef}>

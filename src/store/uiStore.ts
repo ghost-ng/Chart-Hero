@@ -93,6 +93,9 @@ export interface UIState {
   // ---- screenshot mode ----------------------------------------
   screenshotMode: boolean;
 
+  // ---- default connector type ------------------------------------
+  defaultEdgeType: string;
+
   // ---- freehand drawing mode ------------------------------------
   drawingMode: boolean;
   markerColor: string;
@@ -178,6 +181,9 @@ export interface UIState {
   showConfirm: (message: string, options?: { title?: string; confirmLabel?: string; cancelLabel?: string }) => Promise<boolean>;
   resolveConfirm: (result: boolean) => void;
 
+  // ---- default connector type actions -----------------------------
+  setDefaultEdgeType: (type: string) => void;
+
   // ---- freehand drawing mode actions -----------------------------
   setDrawingMode: (active: boolean) => void;
   setMarkerColor: (color: string) => void;
@@ -240,6 +246,8 @@ export const useUIStore = create<UIState>()((set) => ({
 
   toast: null,
   confirmDialog: null,
+
+  defaultEdgeType: 'smoothstep',
 
   drawingMode: false,
   markerColor: '#000000',
@@ -359,6 +367,9 @@ export const useUIStore = create<UIState>()((set) => ({
       set({ confirmDialog: null });
     }
   },
+
+  // -- default connector type ----------------------------------------
+  setDefaultEdgeType: (type) => set({ defaultEdgeType: type }),
 
   // -- freehand drawing mode ----------------------------------------
   setDrawingMode: (active) => set({ drawingMode: active }),

@@ -546,7 +546,7 @@ const LaneHeader: React.FC<LaneHeaderProps> = ({
           />
         )}
 
-        {/* Drag handle — hidden when either label or color is off */}
+        {/* Drag handle — shown when both label and color are visible */}
         {(labelVisible && colorVisible) && (
           <GripVertical
             size={12}

@@ -2,6 +2,7 @@ import { create, type StoreApi } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 import { diagramStyles } from '../styles/diagramStyles';
+import { STYLE_PALETTE_ID } from '../styles/palettes';
 import { useSwimlaneStore } from './swimlaneStore';
 
 // ---------------------------------------------------------------------------
@@ -82,26 +83,33 @@ export const useStyleStore = create<StyleState>()(
       // -- actions --------------------------------------------------
       setStyle: (styleId) => {
         const style = diagramStyles[styleId];
-        const updates: Partial<StyleState> = { activeStyleId: styleId, canvasColorOverride: null };
-        // If the style defines a default palette, activate it
-        if (style?.defaultPaletteId) {
-          updates.activePaletteId = style.defaultPaletteId;
-        }
+        const updates: Partial<StyleState> = {
+          activeStyleId: styleId,
+          canvasColorOverride: null,
+          // Always activate the dynamic style palette when switching styles
+          activePaletteId: STYLE_PALETTE_ID,
+        };
         set(updates);
 
-        // Update existing swimlane colors to match the style's accent palette
+        // Update existing swimlane colors to match the style's accent palette.
+        // Dark themes need higher opacity so lanes remain visible on dark backgrounds.
         if (style && style.accentColors.length > 0) {
           const swimlane = useSwimlaneStore.getState();
           const { horizontal, vertical } = swimlane.config;
+          const laneOpacity = style.dark ? 30 : undefined; // boost for dark themes
           horizontal.forEach((lane, i) => {
-            swimlane.updateLane('horizontal', lane.id, {
+            const patch: Record<string, unknown> = {
               color: style.accentColors[i % style.accentColors.length],
-            });
+            };
+            if (laneOpacity != null) patch.colorOpacity = laneOpacity;
+            swimlane.updateLane('horizontal', lane.id, patch);
           });
           vertical.forEach((lane, i) => {
-            swimlane.updateLane('vertical', lane.id, {
+            const patch: Record<string, unknown> = {
               color: style.accentColors[(horizontal.length + i) % style.accentColors.length],
-            });
+            };
+            if (laneOpacity != null) patch.colorOpacity = laneOpacity;
+            swimlane.updateLane('vertical', lane.id, patch);
           });
         }
       },

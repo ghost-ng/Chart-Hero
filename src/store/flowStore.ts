@@ -12,7 +12,7 @@ import {
   type Edge,
   type XYPosition,
 } from '@xyflow/react';
-import { suggestEdgeType } from '../utils/edgeRoutingUtils';
+import { useUIStore } from './uiStore';
 import { log } from '../utils/logger';
 
 // ---------------------------------------------------------------------------
@@ -345,19 +345,11 @@ export const useFlowStore = create<FlowState>()(
           }
         }
 
-        // Auto-detect edge type based on node alignment
-        if (connection.source && connection.target) {
-          const source = state.nodes.find(n => n.id === connection.source);
-          const target = state.nodes.find(n => n.id === connection.target);
-          if (source && target) {
-            const suggested = suggestEdgeType(source.position, target.position);
-            if (suggested === 'straight') {
-              const newEdge = state.edges[state.edges.length - 1];
-              if (newEdge) {
-                newEdge.type = 'straight';
-              }
-            }
-          }
+        // Apply user-selected default edge type
+        const defaultType = useUIStore.getState().defaultEdgeType || 'smoothstep';
+        const newEdge = state.edges[state.edges.length - 1];
+        if (newEdge) {
+          newEdge.type = defaultType;
         }
       });
     },

@@ -86,7 +86,7 @@ const BannerContextMenu: React.FC<BannerContextMenuProps> = ({
     };
   }, [onClose]);
 
-  // Clamp to viewport
+  // Clamp to viewport — prefer opening upward (banners are near edges)
   const [style, setStyle] = useState<React.CSSProperties>({
     position: 'fixed',
     top: y,
@@ -102,7 +102,11 @@ const BannerContextMenu: React.FC<BannerContextMenuProps> = ({
     const vh = window.innerHeight;
     const pad = 8;
     const newLeft = rect.right > vw - pad ? Math.max(pad, vw - rect.width - pad) : x;
-    const newTop = rect.bottom > vh - pad ? Math.max(pad, vh - rect.height - pad) : y;
+    // Prefer opening upward: if menu bottom overflows OR click is in bottom half, open above
+    let newTop = y;
+    if (rect.bottom > vh - pad) {
+      newTop = Math.max(pad, y - rect.height);
+    }
     if (newTop !== y || newLeft !== x) {
       setStyle({ position: 'fixed', top: newTop, left: newLeft, zIndex: 9999 });
     }
@@ -113,55 +117,59 @@ const BannerContextMenu: React.FC<BannerContextMenuProps> = ({
       ref={menuRef}
       style={style}
       className={`
-        min-w-[220px] rounded-lg shadow-xl border p-2 select-none
+        w-[340px] max-h-[70vh] overflow-y-auto rounded-lg shadow-xl border p-3 select-none
         ${darkMode ? 'bg-dk-panel border-dk-border' : 'bg-white border-slate-200'}
       `}
     >
-      {/* Label */}
-      <div className={`text-[10px] font-semibold uppercase tracking-wider px-1 mb-1 ${darkMode ? 'text-dk-muted' : 'text-slate-500'}`}>
-        Label
+      {/* Row 1: Label + Height side by side */}
+      <div className="flex gap-3 mb-2">
+        <div className="flex-1">
+          <div className={`text-[10px] font-bold uppercase tracking-wider px-1 mb-1 ${darkMode ? 'text-dk-muted' : 'text-slate-500'}`}>
+            Label
+          </div>
+          <input
+            type="text"
+            value={banner.label}
+            onChange={(e) => update({ label: e.target.value })}
+            placeholder="Banner text..."
+            autoFocus
+            className={`w-full text-xs px-2 py-1.5 rounded border ${
+              darkMode
+                ? 'bg-dk-input border-dk-border text-dk-text placeholder:text-dk-faint'
+                : 'bg-white border-slate-200 text-slate-700 placeholder:text-slate-400'
+            }`}
+          />
+        </div>
+        <div className="w-24">
+          <div className={`text-[10px] font-bold uppercase tracking-wider px-1 mb-1 ${darkMode ? 'text-dk-muted' : 'text-slate-500'}`}>
+            Height
+          </div>
+          <div className="flex items-center gap-1">
+            <input
+              type="range"
+              min={MIN_HEIGHT}
+              max={MAX_HEIGHT}
+              value={banner.height}
+              onChange={(e) => update({ height: Number(e.target.value) })}
+              className="flex-1 h-1 accent-primary cursor-pointer"
+            />
+            <span className={`text-[10px] tabular-nums w-7 text-right ${darkMode ? 'text-dk-muted' : 'text-slate-500'}`}>
+              {banner.height}
+            </span>
+          </div>
+        </div>
       </div>
-      <input
-        type="text"
-        value={banner.label}
-        onChange={(e) => update({ label: e.target.value })}
-        placeholder="Banner text..."
-        autoFocus
-        className={`w-full text-xs px-2 py-1.5 rounded border mb-2 ${
-          darkMode
-            ? 'bg-dk-input border-dk-border text-dk-text placeholder:text-dk-faint'
-            : 'bg-white border-slate-200 text-slate-700 placeholder:text-slate-400'
-        }`}
-      />
 
-      {/* Height */}
-      <div className={`text-[10px] font-semibold uppercase tracking-wider px-1 mb-1 ${darkMode ? 'text-dk-muted' : 'text-slate-500'}`}>
-        Height
-      </div>
-      <div className="flex items-center gap-2 mb-2 px-1">
-        <input
-          type="range"
-          min={MIN_HEIGHT}
-          max={MAX_HEIGHT}
-          value={banner.height}
-          onChange={(e) => update({ height: Number(e.target.value) })}
-          className="flex-1 h-1 accent-primary cursor-pointer"
-        />
-        <span className={`text-[11px] tabular-nums w-8 text-right ${darkMode ? 'text-dk-muted' : 'text-slate-500'}`}>
-          {banner.height}px
-        </span>
-      </div>
-
-      {/* Background Color */}
-      <div className={`text-[10px] font-semibold uppercase tracking-wider px-1 mb-1 ${darkMode ? 'text-dk-muted' : 'text-slate-500'}`}>
+      {/* Background Color — wide grid with scroll */}
+      <div className={`text-[10px] font-bold uppercase tracking-wider px-1 mb-1 ${darkMode ? 'text-dk-muted' : 'text-slate-500'}`}>
         Background Color
       </div>
-      <div className="grid grid-cols-8 gap-1 mb-2 px-1">
+      <div className="flex flex-wrap gap-1 mb-2 px-1 max-h-16 overflow-y-auto">
         {COLOR_SWATCHES.map((c) => (
           <button
             key={c}
             onClick={() => update({ color: c })}
-            className="w-5 h-5 rounded cursor-pointer transition-transform hover:scale-125"
+            className="w-5 h-5 rounded cursor-pointer transition-transform hover:scale-125 shrink-0"
             style={{
               backgroundColor: c,
               border: c === banner.color ? '2px solid #3b82f6' : '1px solid rgba(0,0,0,0.1)',
@@ -170,65 +178,69 @@ const BannerContextMenu: React.FC<BannerContextMenuProps> = ({
         ))}
       </div>
 
-      {/* Text Color */}
-      <div className={`text-[10px] font-semibold uppercase tracking-wider px-1 mb-1 ${darkMode ? 'text-dk-muted' : 'text-slate-500'}`}>
-        Text Color
-      </div>
-      <div className="flex gap-1 mb-2 px-1">
-        {['#ffffff', '#f1f5f9', '#1e293b', '#0f172a', '#ef4444', '#3b82f6', '#10b981', '#f59e0b'].map((c) => (
-          <button
-            key={c}
-            onClick={() => update({ textColor: c })}
-            className="w-5 h-5 rounded cursor-pointer transition-transform hover:scale-125"
-            style={{
-              backgroundColor: c,
-              border: c === banner.textColor ? '2px solid #3b82f6' : '1px solid rgba(0,0,0,0.15)',
-            }}
-          />
-        ))}
+      {/* Text Color + Font Size side by side */}
+      <div className="flex gap-3 mb-2">
+        <div className="flex-1">
+          <div className={`text-[10px] font-bold uppercase tracking-wider px-1 mb-1 ${darkMode ? 'text-dk-muted' : 'text-slate-500'}`}>
+            Text Color
+          </div>
+          <div className="flex gap-1 px-1">
+            {['#ffffff', '#f1f5f9', '#1e293b', '#0f172a', '#ef4444', '#3b82f6', '#10b981', '#f59e0b'].map((c) => (
+              <button
+                key={c}
+                onClick={() => update({ textColor: c })}
+                className="w-5 h-5 rounded cursor-pointer transition-transform hover:scale-125"
+                style={{
+                  backgroundColor: c,
+                  border: c === banner.textColor ? '2px solid #3b82f6' : '1px solid rgba(0,0,0,0.15)',
+                }}
+              />
+            ))}
+          </div>
+        </div>
+        <div className="w-[140px]">
+          <div className={`text-[10px] font-bold uppercase tracking-wider px-1 mb-1 ${darkMode ? 'text-dk-muted' : 'text-slate-500'}`}>
+            Font Size
+          </div>
+          <div className="flex gap-0.5 px-1">
+            {[10, 12, 14, 16, 18, 20, 24].map((s) => (
+              <button
+                key={s}
+                onClick={() => update({ fontSize: s })}
+                className={`flex-1 text-[10px] px-0.5 py-0.5 rounded cursor-pointer transition-colors ${
+                  banner.fontSize === s
+                    ? 'bg-primary/10 text-primary font-medium'
+                    : darkMode
+                      ? 'hover:bg-dk-hover text-dk-muted'
+                      : 'hover:bg-slate-100 text-slate-600'
+                }`}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
-      {/* Font Family */}
-      <div className={`text-[10px] font-semibold uppercase tracking-wider px-1 mb-1 ${darkMode ? 'text-dk-muted' : 'text-slate-500'}`}>
+      {/* Font Family — compact scrollable */}
+      <div className={`text-[10px] font-bold uppercase tracking-wider px-1 mb-1 ${darkMode ? 'text-dk-muted' : 'text-slate-500'}`}>
         Font Family
       </div>
-      <div className="max-h-28 overflow-y-auto mb-2">
+      <div className="flex flex-wrap gap-1 px-1">
         {BANNER_FONTS.map((f) => (
           <button
             key={f.value}
             onClick={() => update({ fontFamily: f.value })}
-            className={`flex items-center gap-2 w-full px-2 py-1 text-xs rounded cursor-pointer transition-colors ${
+            className={`px-2 py-1 text-xs rounded cursor-pointer transition-colors ${
               banner.fontFamily === f.value
                 ? 'bg-primary/10 text-primary font-medium'
                 : darkMode
                   ? 'hover:bg-dk-hover text-dk-text'
                   : 'hover:bg-slate-100 text-slate-700'
             }`}
+            style={{ fontFamily: f.value }}
           >
-            <span style={{ fontFamily: f.value }} className="text-sm w-6 text-center">Aa</span>
-            <span style={{ fontFamily: f.value }}>{f.label}</span>
-          </button>
-        ))}
-      </div>
-
-      {/* Font Size */}
-      <div className={`text-[10px] font-semibold uppercase tracking-wider px-1 mb-1 ${darkMode ? 'text-dk-muted' : 'text-slate-500'}`}>
-        Font Size
-      </div>
-      <div className="flex gap-1 px-1">
-        {[10, 12, 14, 16, 18, 20, 24].map((s) => (
-          <button
-            key={s}
-            onClick={() => update({ fontSize: s })}
-            className={`flex-1 text-[11px] px-1 py-1 rounded cursor-pointer transition-colors ${
-              banner.fontSize === s
-                ? 'bg-primary/10 text-primary font-medium'
-                : darkMode
-                  ? 'hover:bg-dk-hover text-dk-muted'
-                  : 'hover:bg-slate-100 text-slate-600'
-            }`}
-          >
-            {s}
+            {f.label}
           </button>
         ))}
       </div>

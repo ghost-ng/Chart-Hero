@@ -379,19 +379,23 @@ const ContainerEdgeResizeHandle: React.FC<ContainerEdgeResizeHandleProps> = ({
 };
 
 // ---------------------------------------------------------------------------
-// MatrixCornerHandle — move/resize handle in the top-left corner of matrix mode
+// ContainerDragHandle — move handle in the top-left corner of ALL swimlane modes
+// Shows grip dots on hover so the container is always draggable even when lane
+// header grips are hidden.
 // ---------------------------------------------------------------------------
 
-interface MatrixCornerHandleProps {
+interface ContainerDragHandleProps {
   width: number;
   height: number;
   zoom: number;
+  darkMode: boolean;
 }
 
-const MatrixCornerHandle: React.FC<MatrixCornerHandleProps> = ({
+const ContainerDragHandle: React.FC<ContainerDragHandleProps> = ({
   width,
   height,
   zoom,
+  darkMode,
 }) => {
   const startRef = useRef<{
     clientX: number;
@@ -440,8 +444,11 @@ const MatrixCornerHandle: React.FC<MatrixCornerHandleProps> = ({
     [zoom],
   );
 
+  const dotColor = darkMode ? '#7e8d9f' : '#94a3b8';
+
   return (
     <div
+      className="swimlane-drag-handle"
       style={{
         position: 'absolute',
         left: 0,
@@ -458,7 +465,21 @@ const MatrixCornerHandle: React.FC<MatrixCornerHandleProps> = ({
       }}
       onMouseDown={handleMouseDown}
     >
-      {/* Grip dots rendered in visual layer (SwimlaneLayer z:0) — this is interaction-only */}
+      {/* Grip dots — visible on hover via CSS */}
+      <svg
+        width={Math.min(16, width - 4)}
+        height={Math.min(16, height - 4)}
+        viewBox="0 0 16 16"
+        fill="none"
+        className="swimlane-drag-dots"
+        style={{ opacity: 0, transition: 'opacity 0.15s ease' }}
+      >
+        <circle cx="4" cy="4" r="1.4" fill={dotColor} />
+        <circle cx="12" cy="4" r="1.4" fill={dotColor} />
+        <circle cx="4" cy="12" r="1.4" fill={dotColor} />
+        <circle cx="12" cy="12" r="1.4" fill={dotColor} />
+        <circle cx="8" cy="8" r="1.4" fill={dotColor} />
+      </svg>
     </div>
   );
 };
@@ -748,7 +769,7 @@ const SwimlaneLayer: React.FC = () => {
                     width: totalWidth - (hasVLanes ? H_HEADER_WIDTH : H_HEADER_WIDTH),
                     height: size,
                     backgroundColor: lane.color,
-                    opacity: lane.colorOpacity != null ? lane.colorOpacity / 100 : (darkMode ? 0.12 : 0.15),
+                    opacity: lane.colorOpacity != null ? lane.colorOpacity / 100 : (darkMode ? 0.35 : 0.15),
                     pointerEvents: 'none',
                   }}
                 />
@@ -792,7 +813,7 @@ const SwimlaneLayer: React.FC = () => {
                     width: size,
                     height: totalHeight - (hasHLanes ? V_HEADER_HEIGHT : V_HEADER_HEIGHT),
                     backgroundColor: lane.color,
-                    opacity: lane.colorOpacity != null ? lane.colorOpacity / 100 : (darkMode ? 0.1 : 0.12),
+                    opacity: lane.colorOpacity != null ? lane.colorOpacity / 100 : (darkMode ? 0.35 : 0.12),
                     pointerEvents: 'none',
                   }}
                 />
@@ -887,33 +908,48 @@ const SwimlaneLayer: React.FC = () => {
           );
         })}
 
-        {/* ---- Matrix corner background + grip dots (visual only, behind nodes) ---- */}
-        {isMatrix && (
-          <div
-            style={{
-              position: 'absolute',
-              left: 0,
-              top: 0,
-              width: H_HEADER_WIDTH,
-              height: V_HEADER_HEIGHT,
-              backgroundColor: darkMode ? 'rgba(37,51,69,0.9)' : 'rgba(255,255,255,0.9)',
-              borderRight: `1px solid ${darkMode ? 'rgba(132,148,167,0.3)' : 'rgba(100,116,139,0.25)'}`,
-              borderBottom: `1px solid ${darkMode ? 'rgba(132,148,167,0.3)' : 'rgba(100,116,139,0.25)'}`,
-              pointerEvents: 'none',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <svg width={Math.min(20, H_HEADER_WIDTH - 4)} height={Math.min(20, V_HEADER_HEIGHT - 4)} viewBox="0 0 20 20" fill="none">
-              <circle cx="6" cy="6" r="1.5" fill={darkMode ? '#7e8d9f' : '#94a3b8'} />
-              <circle cx="14" cy="6" r="1.5" fill={darkMode ? '#7e8d9f' : '#94a3b8'} />
-              <circle cx="6" cy="14" r="1.5" fill={darkMode ? '#7e8d9f' : '#94a3b8'} />
-              <circle cx="14" cy="14" r="1.5" fill={darkMode ? '#7e8d9f' : '#94a3b8'} />
-              <circle cx="10" cy="10" r="1.5" fill={darkMode ? '#7e8d9f' : '#94a3b8'} />
-            </svg>
-          </div>
-        )}
+        {/* ---- Corner background + grip dots (visual only, behind nodes) ---- */}
+        {(() => {
+          const cw = hasHLanes ? H_HEADER_WIDTH : CORNER_HANDLE_SIZE * 3;
+          const ch = hasVLanes ? V_HEADER_HEIGHT : CORNER_HANDLE_SIZE * 3;
+          const dotColor = darkMode ? '#7e8d9f' : '#94a3b8';
+          return (
+            <div
+              className="swimlane-drag-handle"
+              style={{
+                position: 'absolute',
+                left: 0,
+                top: 0,
+                width: cw,
+                height: ch,
+                backgroundColor: isMatrix
+                  ? (darkMode ? 'rgba(37,51,69,0.9)' : 'rgba(255,255,255,0.9)')
+                  : 'transparent',
+                borderRight: isMatrix ? `1px solid ${darkMode ? 'rgba(132,148,167,0.3)' : 'rgba(100,116,139,0.25)'}` : 'none',
+                borderBottom: isMatrix ? `1px solid ${darkMode ? 'rgba(132,148,167,0.3)' : 'rgba(100,116,139,0.25)'}` : 'none',
+                pointerEvents: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <svg
+                width={Math.min(16, cw - 4)}
+                height={Math.min(16, ch - 4)}
+                viewBox="0 0 16 16"
+                fill="none"
+                className="swimlane-drag-dots"
+                style={{ opacity: isMatrix ? 1 : 0, transition: 'opacity 0.15s ease' }}
+              >
+                <circle cx="4" cy="4" r="1.4" fill={dotColor} />
+                <circle cx="12" cy="4" r="1.4" fill={dotColor} />
+                <circle cx="4" cy="12" r="1.4" fill={dotColor} />
+                <circle cx="12" cy="12" r="1.4" fill={dotColor} />
+                <circle cx="8" cy="8" r="1.4" fill={dotColor} />
+              </svg>
+            </div>
+          );
+        })()}
 
         {/* ---- Outer border ---- */}
         {(() => {
@@ -1045,14 +1081,13 @@ const SwimlaneHeaderLayerInner: React.FC = () => {
             );
           })}
 
-        {/* Matrix corner move handle — same layer as headers for consistent interactivity */}
-        {hasHLanes && hasVLanes && (
-          <MatrixCornerHandle
-            width={H_HEADER_WIDTH}
-            height={V_HEADER_HEIGHT}
-            zoom={viewport.zoom}
-          />
-        )}
+        {/* Corner drag handle — always present so container is draggable even when lane grips are hidden */}
+        <ContainerDragHandle
+          width={hasHLanes ? H_HEADER_WIDTH : CORNER_HANDLE_SIZE * 3}
+          height={hasVLanes ? V_HEADER_HEIGHT : CORNER_HANDLE_SIZE * 3}
+          zoom={viewport.zoom}
+          darkMode={darkMode}
+        />
       </div>
     </div>
   );

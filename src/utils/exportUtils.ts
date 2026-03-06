@@ -43,13 +43,40 @@ import {
  * Find the canvas element to capture.
  * Uses `[data-charthero-canvas-area]` which wraps swimlane layers + ReactFlow.
  * Falls back to `.react-flow` if the wrapper isn't found.
+ *
+ * When `includeBanners` is true and banners are enabled, returns
+ * `[data-charthero-capture-area]` instead (outer flex wrapper that includes banners).
  */
-export function getReactFlowElement(): HTMLElement {
+export function getReactFlowElement(includeBanners?: boolean): HTMLElement {
+  if (includeBanners) {
+    const { topBanner, bottomBanner } = useBannerStore.getState();
+    if (topBanner.enabled || bottomBanner.enabled) {
+      const captureArea = document.querySelector<HTMLElement>('[data-charthero-capture-area]');
+      if (captureArea) return captureArea;
+    }
+  }
   const canvasArea = document.querySelector<HTMLElement>('[data-charthero-canvas-area]');
   if (canvasArea) return canvasArea;
   const container = document.querySelector<HTMLElement>('.react-flow');
   if (container) return container;
   throw new Error('Could not find React Flow element in the DOM');
+}
+
+/**
+ * Temporarily set overflow:visible on swimlane layers for export capture.
+ * Returns a cleanup function to restore original overflow.
+ */
+export function unlockSwimlaneOverflow(): () => void {
+  const restorers: (() => void)[] = [];
+  document.querySelectorAll<HTMLElement>('[data-swimlane-viewport]').forEach((vpEl) => {
+    const root = vpEl.parentElement;
+    if (root && root.style.overflow !== 'visible') {
+      const prev = root.style.overflow;
+      root.style.overflow = 'visible';
+      restorers.push(() => { root.style.overflow = prev; });
+    }
+  });
+  return () => { for (const r of restorers) r(); };
 }
 
 /**
@@ -109,20 +136,25 @@ export function estimateFileSize(
 // ---------------------------------------------------------------------------
 
 export async function exportAsPng(options: PngExportOptions): Promise<void> {
-  const element = getReactFlowElement();
+  const element = getReactFlowElement(true);
   const { scale, transparentBackground, padding } = options;
+  const restoreOverflow = unlockSwimlaneOverflow();
 
-  const dataUrl = await toPng(element, {
-    pixelRatio: scale,
-    backgroundColor: transparentBackground ? undefined : '#ffffff',
-    style: {
-      padding: `${padding}px`,
-    },
-  });
+  try {
+    const dataUrl = await toPng(element, {
+      pixelRatio: scale,
+      backgroundColor: transparentBackground ? undefined : '#ffffff',
+      style: {
+        padding: `${padding}px`,
+      },
+    });
 
-  const response = await fetch(dataUrl);
-  const blob = await response.blob();
-  saveAs(blob, getFilename('png'));
+    const response = await fetch(dataUrl);
+    const blob = await response.blob();
+    saveAs(blob, getFilename('png'));
+  } finally {
+    restoreOverflow();
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -130,21 +162,26 @@ export async function exportAsPng(options: PngExportOptions): Promise<void> {
 // ---------------------------------------------------------------------------
 
 export async function exportAsJpg(options: JpgExportOptions): Promise<void> {
-  const element = getReactFlowElement();
+  const element = getReactFlowElement(true);
   const { quality, scale, backgroundColor, padding } = options;
+  const restoreOverflow = unlockSwimlaneOverflow();
 
-  const dataUrl = await toJpeg(element, {
-    quality,
-    pixelRatio: scale,
-    backgroundColor: backgroundColor || '#ffffff',
-    style: {
-      padding: `${padding}px`,
-    },
-  });
+  try {
+    const dataUrl = await toJpeg(element, {
+      quality,
+      pixelRatio: scale,
+      backgroundColor: backgroundColor || '#ffffff',
+      style: {
+        padding: `${padding}px`,
+      },
+    });
 
-  const response = await fetch(dataUrl);
-  const blob = await response.blob();
-  saveAs(blob, getFilename('jpg'));
+    const response = await fetch(dataUrl);
+    const blob = await response.blob();
+    saveAs(blob, getFilename('jpg'));
+  } finally {
+    restoreOverflow();
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -154,36 +191,37 @@ export async function exportAsJpg(options: JpgExportOptions): Promise<void> {
 export async function exportAsSvg(options: SvgExportOptions): Promise<void> {
   const { embedFonts, padding } = options;
 
-  // Use the canvas area wrapper (includes swimlane layer + ReactFlow viewport).
-  // Falls back to .react-flow if the wrapper isn't found.
-  const container = document.querySelector<HTMLElement>('[data-charthero-canvas-area]')
-    ?? document.querySelector<HTMLElement>('.react-flow');
-  if (!container) throw new Error('Could not find React Flow element in the DOM');
+  const container = getReactFlowElement(true);
+  const restoreOverflow = unlockSwimlaneOverflow();
 
-  const dataUrl = await toSvg(container, {
-    skipFonts: !embedFonts,
-    backgroundColor: '#ffffff',
-    width: container.offsetWidth + padding * 2,
-    height: container.offsetHeight + padding * 2,
-    style: {
-      padding: `${padding}px`,
-    },
-    filter: (node) => {
-      // Exclude minimap, controls, panel overlays, and export-ignored elements from the SVG
-      const el = node as HTMLElement;
-      if (!el.classList) return true;
-      if (el.classList.contains('react-flow__minimap')) return false;
-      if (el.classList.contains('react-flow__controls')) return false;
-      if (el.classList.contains('react-flow__panel')) return false;
-      if (el.hasAttribute && el.hasAttribute('data-export-ignore')) return false;
-      return true;
-    },
-  });
+  try {
+    const dataUrl = await toSvg(container, {
+      skipFonts: !embedFonts,
+      backgroundColor: '#ffffff',
+      width: container.offsetWidth + padding * 2,
+      height: container.offsetHeight + padding * 2,
+      style: {
+        padding: `${padding}px`,
+      },
+      filter: (node) => {
+        // Exclude minimap, controls, panel overlays, and export-ignored elements from the SVG
+        const el = node as HTMLElement;
+        if (!el.classList) return true;
+        if (el.classList.contains('react-flow__minimap')) return false;
+        if (el.classList.contains('react-flow__controls')) return false;
+        if (el.classList.contains('react-flow__panel')) return false;
+        if (el.hasAttribute && el.hasAttribute('data-export-ignore')) return false;
+        return true;
+      },
+    });
 
-  // Convert data URL to SVG string
-  const svgString = decodeURIComponent(dataUrl.split(',')[1]);
-  const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
-  saveAs(blob, getFilename('svg'));
+    // Convert data URL to SVG string
+    const svgString = decodeURIComponent(dataUrl.split(',')[1]);
+    const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+    saveAs(blob, getFilename('svg'));
+  } finally {
+    restoreOverflow();
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -199,13 +237,19 @@ const PDF_PAGE_SIZES: Record<string, string> = {
 };
 
 export async function exportAsPdf(options: PdfExportOptions): Promise<void> {
-  const element = getReactFlowElement();
+  const element = getReactFlowElement(true);
+  const restoreOverflow = unlockSwimlaneOverflow();
 
   // Capture the diagram as a PNG first
-  const dataUrl = await toPng(element, {
-    pixelRatio: 2,
-    backgroundColor: '#ffffff',
-  });
+  let dataUrl: string;
+  try {
+    dataUrl = await toPng(element, {
+      pixelRatio: 2,
+      backgroundColor: '#ffffff',
+    });
+  } finally {
+    restoreOverflow();
+  }
 
   const { pageSize, orientation, fitToPage, margin } = options;
   const pdfFormat = PDF_PAGE_SIZES[pageSize] || 'a4';

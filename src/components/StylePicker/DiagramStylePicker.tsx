@@ -4,7 +4,7 @@ import { Check, RotateCcw, X } from 'lucide-react';
 import { useStyleStore } from '../../store/styleStore';
 import { useFlowStore, type FlowNodeData } from '../../store/flowStore';
 import { diagramStyles } from '../../styles/diagramStyles';
-import { colorPalettes } from '../../styles/palettes';
+import { colorPalettes, STYLE_PALETTE_ID, resolveActivePalette } from '../../styles/palettes';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -233,11 +233,6 @@ const DiagramStylePicker: React.FC<DiagramStylePickerProps> = ({ open, onClose }
         updateEdgeData(edge.id, { color: undefined });
       }
 
-      // Auto-select palette if theme defines one
-      if (style?.defaultPaletteId) {
-        setPalette(style.defaultPaletteId);
-      }
-
       // Sync dark mode to match theme preference
       if (style?.dark) {
         useStyleStore.getState().setDarkMode(true);
@@ -284,7 +279,14 @@ const DiagramStylePicker: React.FC<DiagramStylePickerProps> = ({ open, onClose }
   if (!open) return null;
 
   const styleEntries = Object.entries(diagramStyles);
-  const paletteEntries = Object.entries(colorPalettes);
+  const staticPaletteEntries = Object.entries(colorPalettes);
+
+  // Prepend dynamic Style Palette when a diagram style is active
+  const stylePalette = activeStyleId ? resolveActivePalette(STYLE_PALETTE_ID, activeStyleId) : null;
+  const paletteEntries: [string, { displayName: string; colors: string[] }][] = [
+    ...(stylePalette ? [[STYLE_PALETTE_ID, stylePalette] as [string, { displayName: string; colors: string[] }]] : []),
+    ...staticPaletteEntries,
+  ];
 
   return (
     <div

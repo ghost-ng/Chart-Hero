@@ -28,7 +28,7 @@ import { useAutoLayout } from '../../hooks/useAutoLayout';
 import * as alignment from '../../utils/alignmentUtils';
 import { mirrorHorizontal, mirrorVertical, rotateArrangement } from '../../utils/transformUtils';
 import { computeBoundingBox } from '../../utils/groupUtils';
-import { colorPalettes, defaultPaletteId } from '../../styles/palettes';
+import { resolveActivePalette } from '../../styles/palettes';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -140,7 +140,7 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = ({
   const darkMode = useStyleStore((s) => s.darkMode);
   const activeStyleId = useStyleStore((s) => s.activeStyleId);
   const activePaletteId = useStyleStore((s) => s.activePaletteId);
-  const quickColors = (activePaletteId && colorPalettes[activePaletteId]?.colors) || colorPalettes[defaultPaletteId]?.colors || defaultQuickColors;
+  const quickColors = resolveActivePalette(activePaletteId, activeStyleId).colors ?? defaultQuickColors;
   const menuRef = useRef<HTMLDivElement>(null);
   const [submenu, setSubmenu] = useState<'align' | 'distribute' | 'shape' | 'group' | 'mirror' | 'rotate' | null>(null);
   const { applyLayout } = useAutoLayout();
@@ -413,14 +413,14 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = ({
             onMouseEnter={() => setSubmenu('align')}
           />
           {submenu === 'align' && (
-            <SubMenu darkMode={darkMode} className="p-1 min-w-[180px]">
-              <MenuItem icon={<AlignLeft size={14} />} label="Align Left" onClick={() => handleAlign(alignment.alignLeft)} darkMode={darkMode} />
-              <MenuItem icon={<AlignCenterVertical size={14} />} label="Align Center (H)" onClick={() => handleAlign(alignment.alignCenterH)} darkMode={darkMode} />
-              <MenuItem icon={<AlignRight size={14} />} label="Align Right" onClick={() => handleAlign(alignment.alignRight)} darkMode={darkMode} />
+            <SubMenu darkMode={darkMode} className="p-1 min-w-[200px]">
+              <MenuItem icon={<AlignLeft size={14} />} label="Align Left" shortcut="Alt+L" onClick={() => handleAlign(alignment.alignLeft)} darkMode={darkMode} />
+              <MenuItem icon={<AlignCenterVertical size={14} />} label="Align Center" shortcut="Alt+C" onClick={() => handleAlign(alignment.alignCenterH)} darkMode={darkMode} />
+              <MenuItem icon={<AlignRight size={14} />} label="Align Right" shortcut="Alt+R" onClick={() => handleAlign(alignment.alignRight)} darkMode={darkMode} />
               <MenuDivider darkMode={darkMode} />
-              <MenuItem icon={<AlignStartVertical size={14} />} label="Align Top" onClick={() => handleAlign(alignment.alignTop)} darkMode={darkMode} />
-              <MenuItem icon={<AlignCenterHorizontal size={14} />} label="Align Center (V)" onClick={() => handleAlign(alignment.alignCenterV)} darkMode={darkMode} />
-              <MenuItem icon={<AlignEndVertical size={14} />} label="Align Bottom" onClick={() => handleAlign(alignment.alignBottom)} darkMode={darkMode} />
+              <MenuItem icon={<AlignStartVertical size={14} />} label="Align Top" shortcut="Alt+T" onClick={() => handleAlign(alignment.alignTop)} darkMode={darkMode} />
+              <MenuItem icon={<AlignCenterHorizontal size={14} />} label="Align Middle" shortcut="Alt+M" onClick={() => handleAlign(alignment.alignCenterV)} darkMode={darkMode} />
+              <MenuItem icon={<AlignEndVertical size={14} />} label="Align Bottom" shortcut="Alt+B" onClick={() => handleAlign(alignment.alignBottom)} darkMode={darkMode} />
             </SubMenu>
           )}
         </div>

@@ -126,11 +126,26 @@ input[type="button"] {
   --cursor-move: url('../assets/cursors/move_main.png') 14 14, move;
 }
 
+/* Swimlane corner drag handle — show grip dots on hover */
+.swimlane-drag-handle:hover .swimlane-drag-dots {
+  opacity: 1 !important;
+}
+
 /* Force ReactFlow above swimlane header layer (z:1) so nodes always render on top.
    Using CSS rather than style prop because ReactFlow's internal wrapperStyle
-   can interfere with inline style merging. */
+   can interfere with inline style merging.
+   Also force transparent background so the swimlane layer (z:0) behind it
+   remains visible — React Flow's .dark class sets an opaque #141414 bg that
+   would otherwise cover the swimlanes entirely. The canvas background is
+   already handled by the parent [data-charthero-canvas] wrapper. */
 [data-charthero-canvas-area] .react-flow {
   z-index: 2 !important;
+  background-color: transparent !important;
+}
+/* The <Background> grid component also gets an opaque bg in dark mode — force transparent
+   so the swimlane layer behind ReactFlow remains visible. */
+[data-charthero-canvas-area] .react-flow__background {
+  background-color: transparent !important;
 }
 
 /* Default canvas cursor: custom blue arrow (selection mode) */

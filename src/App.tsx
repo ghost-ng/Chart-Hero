@@ -32,7 +32,7 @@ import { mirrorHorizontal, mirrorVertical } from './utils/transformUtils';
 import * as alignment from './utils/alignmentUtils';
 import type { FlowNode, FlowEdge, FlowNodeData, StatusIndicator } from './store/flowStore';
 import { newPuckId, getStatusIndicators } from './store/flowStore';
-import { colorPalettes, defaultPaletteId } from './styles/palettes';
+import { resolveActivePalette } from './styles/palettes';
 
 // ---------------------------------------------------------------------------
 // Module-level clipboard for copy/paste (nodes or pucks)
@@ -344,8 +344,8 @@ const App: React.FC = () => {
   // Apply palette color by index (1-9 keys) — uses the active color palette
   const handleApplyPaletteColor = useCallback((index: number) => {
     const { selectedNodes, updateNodeData } = useFlowStore.getState();
-    const { activePaletteId } = useStyleStore.getState();
-    const palette = colorPalettes[activePaletteId] ?? colorPalettes[defaultPaletteId];
+    const { activePaletteId, activeStyleId } = useStyleStore.getState();
+    const palette = resolveActivePalette(activePaletteId, activeStyleId);
     const colors = palette?.colors;
     if (!colors || index < 0 || index >= colors.length) return;
     const color = colors[index];

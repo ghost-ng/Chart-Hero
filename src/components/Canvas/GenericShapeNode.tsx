@@ -147,6 +147,109 @@ interface StatusBadgeProps {
 
 const CLICK_THRESHOLD = 4; // px – movement below this is treated as a click, not a drag
 
+// ---------------------------------------------------------------------------
+// Puck edge-snap positions for non-rectangular shapes.
+// Returns { left%, top% } for the puck center at each corner of the given shape.
+// Shapes not listed here use standard rectangular corner positioning.
+// ---------------------------------------------------------------------------
+
+type PuckCorner = 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left';
+type EdgePositions = Record<PuckCorner, { left: number; top: number }>;
+
+const SHAPE_PUCK_POSITIONS: Record<string, EdgePositions> = {
+  // Diamond: midpoints of each edge (viewBox 100x100, vertices at top/right/bottom/left)
+  diamond: {
+    'top-right':    { left: 75, top: 25 },
+    'top-left':     { left: 25, top: 25 },
+    'bottom-right': { left: 75, top: 75 },
+    'bottom-left':  { left: 25, top: 75 },
+  },
+  // Circle/ellipse: 45° from center → 50% ± 35.35% ≈ 85%/15%
+  circle: {
+    'top-right':    { left: 85, top: 15 },
+    'top-left':     { left: 15, top: 15 },
+    'bottom-right': { left: 85, top: 85 },
+    'bottom-left':  { left: 15, top: 85 },
+  },
+  // Parallelogram: polygon 25,0 160,0 135,80 0,80 (viewBox 160x80)
+  // Pucks near each corner, slightly inward from vertices
+  parallelogram: {
+    'top-right':    { left: 97, top: 3 },
+    'top-left':     { left: 18, top: 3 },
+    'bottom-right': { left: 82, top: 97 },
+    'bottom-left':  { left: 3,  top: 97 },
+  },
+  // Hexagon: polygon 25,0 135,0 160,40 135,80 25,80 0,40 (viewBox 160x80)
+  // Midpoints of the angled edges
+  hexagon: {
+    'top-right':    { left: 92, top: 25 },
+    'top-left':     { left: 8,  top: 25 },
+    'bottom-right': { left: 92, top: 75 },
+    'bottom-left':  { left: 8,  top: 75 },
+  },
+  // Cloud: organic shape, approximate boundary
+  cloud: {
+    'top-right':    { left: 85, top: 18 },
+    'top-left':     { left: 15, top: 18 },
+    'bottom-right': { left: 85, top: 78 },
+    'bottom-left':  { left: 15, top: 78 },
+  },
+  // Document: rectangular top, wavy bottom ~81% height
+  document: {
+    'top-right':    { left: 97, top: 3 },
+    'top-left':     { left: 3,  top: 3 },
+    'bottom-right': { left: 97, top: 78 },
+    'bottom-left':  { left: 3,  top: 78 },
+  },
+  // Sticky note: folded top-right corner (145,0→160,15 in viewBox 160x80)
+  stickyNote: {
+    'top-right':    { left: 93, top: 8 },
+    'top-left':     { left: 3,  top: 3 },
+    'bottom-right': { left: 97, top: 97 },
+    'bottom-left':  { left: 3,  top: 97 },
+  },
+};
+// Alias: ellipse uses the same positions as circle
+SHAPE_PUCK_POSITIONS.ellipse = SHAPE_PUCK_POSITIONS.circle;
+
+/** Compute the CSS position for a puck on a given shape and corner.
+ *  Returns { style } with left/top in CSS calc() for percentage-based shapes,
+ *  or right/bottom for standard rectangular corners. */
+function computePuckPosition(
+  shape: string,
+  position: PuckCorner,
+  halfSize: number,
+  sideOffset: number,
+  isRight: boolean,
+): React.CSSProperties {
+  const edgePositions = SHAPE_PUCK_POSITIONS[shape];
+  if (edgePositions) {
+    const { left, top } = edgePositions[position];
+    const edgeSpread = sideOffset * 0.5;
+    // Spread direction: right corners spread left-and-down, left corners spread right-and-down
+    const spreadX = isRight ? edgeSpread : -edgeSpread;
+    const spreadY = (position === 'top-right' || position === 'top-left') ? -edgeSpread : edgeSpread;
+    return {
+      left: `calc(${left}% - ${halfSize}px + ${spreadX}px)`,
+      top: `calc(${top}% - ${halfSize}px + ${spreadY}px)`,
+    };
+  }
+  // Standard rectangular positioning
+  const offset = -halfSize;
+  const style: React.CSSProperties = {};
+  if (isRight) {
+    style.right = offset + sideOffset;
+  } else {
+    style.left = offset + sideOffset;
+  }
+  if (position === 'top-right' || position === 'top-left') {
+    style.top = offset;
+  } else {
+    style.bottom = offset;
+  }
+  return style;
+}
+
 const StatusBadge: React.FC<StatusBadgeProps & { nodeId: string; puckId: string; indexInGroup: number; onUpdatePosition?: (position: string) => void; onUpdateSize?: (size: number) => void }> = ({ statusIndicator, nodeId, puckId, shape, indexInGroup, onUpdatePosition, onUpdateSize }) => {
   const isSelected = useUIStore((s) => s.selectedPuckIds.includes(puckId));
   const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number } | null>(null);
@@ -158,7 +261,6 @@ const StatusBadge: React.FC<StatusBadgeProps & { nodeId: string; puckId: string;
   const { status, color, size: badgeSize, position = 'top-right' } = statusIndicator;
   const size = badgeSize ?? 12;
   const bgColor = color || STATUS_COLORS[status] || '#94a3b8';
-  const offset = -(size / 2);
 
   // Border customisation
   const bColor = statusIndicator.borderColor ?? '#000000';
@@ -171,51 +273,6 @@ const StatusBadge: React.FC<StatusBadgeProps & { nodeId: string; puckId: string;
   const spacing = size + bWidth * 2 + 2; // puck diameter + border + 2px gap
   const sideOffset = indexInGroup * spacing;
   const isRight = position === 'top-right' || position === 'bottom-right';
-  const isDiamondShape = shape === 'diamond';
-
-  const positionStyle: React.CSSProperties = {};
-
-  if (isDiamondShape) {
-    // Diamond edge midpoints (percentage of bounding box):
-    //   top-right  → midpoint of top→right edge → (75%, 25%)
-    //   top-left   → midpoint of left→top edge  → (25%, 25%)
-    //   bottom-right → midpoint of right→bottom → (75%, 75%)
-    //   bottom-left  → midpoint of bottom→left  → (25%, 75%)
-    // For multiple pucks, spread along the edge direction.
-    const half = size / 2;
-    const edgeSpread = sideOffset * 0.5; // half-speed spread along edge
-    switch (position) {
-      case 'top-right':
-        positionStyle.left = `calc(75% - ${half}px + ${edgeSpread}px)`;
-        positionStyle.top = `calc(25% - ${half}px + ${edgeSpread}px)`;
-        break;
-      case 'top-left':
-        positionStyle.left = `calc(25% - ${half}px - ${edgeSpread}px)`;
-        positionStyle.top = `calc(25% - ${half}px + ${edgeSpread}px)`;
-        break;
-      case 'bottom-right':
-        positionStyle.left = `calc(75% - ${half}px + ${edgeSpread}px)`;
-        positionStyle.top = `calc(75% - ${half}px - ${edgeSpread}px)`;
-        break;
-      case 'bottom-left':
-      default:
-        positionStyle.left = `calc(25% - ${half}px - ${edgeSpread}px)`;
-        positionStyle.top = `calc(75% - ${half}px - ${edgeSpread}px)`;
-        break;
-    }
-  } else {
-    // Standard rectangular positioning
-    if (isRight) {
-      positionStyle.right = offset + sideOffset;
-    } else {
-      positionStyle.left = offset + sideOffset;
-    }
-    if (position === 'top-right' || position === 'top-left') {
-      positionStyle.top = offset;
-    } else {
-      positionStyle.bottom = offset;
-    }
-  }
 
   // Helper: compute which corner the cursor is closest to
   const getSnapCorner = (clientX: number, clientY: number, rect: DOMRect) => {
@@ -409,44 +466,8 @@ const StatusBadge: React.FC<StatusBadgeProps & { nodeId: string; puckId: string;
 
   // Minimum 24×24 invisible hit zone for easier clicking
   const hitSize = Math.max(24, size + bWidth * 2);
-  const hitOffset = -(hitSize / 2); // centre the hit zone on the node corner
-
-  // Position the hit zone — for diamonds, use diamond edge midpoints
-  const hitPositionStyle: React.CSSProperties = {};
-  if (isDiamondShape) {
-    const hitHalf = hitSize / 2;
-    const edgeSpreadHit = sideOffset * 0.5;
-    switch (position) {
-      case 'top-right':
-        hitPositionStyle.left = `calc(75% - ${hitHalf}px + ${edgeSpreadHit}px)`;
-        hitPositionStyle.top = `calc(25% - ${hitHalf}px + ${edgeSpreadHit}px)`;
-        break;
-      case 'top-left':
-        hitPositionStyle.left = `calc(25% - ${hitHalf}px - ${edgeSpreadHit}px)`;
-        hitPositionStyle.top = `calc(25% - ${hitHalf}px + ${edgeSpreadHit}px)`;
-        break;
-      case 'bottom-right':
-        hitPositionStyle.left = `calc(75% - ${hitHalf}px + ${edgeSpreadHit}px)`;
-        hitPositionStyle.top = `calc(75% - ${hitHalf}px - ${edgeSpreadHit}px)`;
-        break;
-      case 'bottom-left':
-      default:
-        hitPositionStyle.left = `calc(25% - ${hitHalf}px - ${edgeSpreadHit}px)`;
-        hitPositionStyle.top = `calc(75% - ${hitHalf}px - ${edgeSpreadHit}px)`;
-        break;
-    }
-  } else {
-    if (isRight) {
-      hitPositionStyle.right = hitOffset + sideOffset;
-    } else {
-      hitPositionStyle.left = hitOffset + sideOffset;
-    }
-    if (position === 'top-right' || position === 'top-left') {
-      hitPositionStyle.top = hitOffset;
-    } else {
-      hitPositionStyle.bottom = hitOffset;
-    }
-  }
+  // Hit zone uses the same shape edge-snap positioning as the visual puck
+  const hitPositionStyle = computePuckPosition(shape ?? '', position as PuckCorner, hitSize / 2, sideOffset, isRight);
 
   return (
     /* Invisible hit zone – larger clickable area centred on the same corner
@@ -831,7 +852,7 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   };
 
   const labelStyle: React.CSSProperties = isDiamond
-    ? { fontSize: Math.min(12, scaledFontSize) }
+    ? { fontSize: Math.min(12, scaledFontSize), paddingLeft: '20%', paddingRight: '20%' }
     : {};
 
   const ArrowSvg = isArrowShape ? ArrowSvgs[shape] : null;
