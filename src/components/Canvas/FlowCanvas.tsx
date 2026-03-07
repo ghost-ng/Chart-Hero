@@ -24,6 +24,8 @@ import { useSwimlaneStore, createDefaultContainer } from '../../store/swimlaneSt
 import GenericShapeNode from './GenericShapeNode';
 import GroupNode from './GroupNode';
 import EndpointNode from './EndpointNode';
+import ExtensionNode from '../../extensions/ExtensionNode';
+import { useExtensionStore } from '../../extensions/extensionStore';
 import Ruler, { RulerCorner } from './Ruler';
 import StatusBar from './StatusBar';
 import { edgeTypes, MarkerDefs } from '../Edges';
@@ -76,6 +78,7 @@ const nodeTypes: NodeTypes = {
   shapeNode: GenericShapeNode,
   groupNode: GroupNode,
   endpointNode: EndpointNode,
+  extensionNode: ExtensionNode,
 };
 
 const DEFAULT_EDGE_OPTIONS = {
@@ -566,6 +569,37 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
         // Select the edge (not the endpoint nodes)
         useFlowStore.getState().setSelectedEdges([edgeId]);
         useUIStore.getState().setDefaultEdgeType(connectorType);
+        return;
+      }
+
+      // Handle extension pack item drop — create an extensionNode
+      const extensionData = event.dataTransfer.getData('application/charthero-extension');
+      if (extensionData) {
+        try {
+          const { packId, itemId } = JSON.parse(extensionData);
+          const pack = useExtensionStore.getState().packs.find((p) => p.id === packId);
+          const item = pack?.items.find((i) => i.id === itemId);
+          if (item) {
+            const position = screenToFlowPosition({ x: event.clientX, y: event.clientY });
+            const newNode: FlowNode = {
+              id: nextId(),
+              type: 'extensionNode',
+              position,
+              data: {
+                label: item.name,
+                shape: 'rectangle' as NodeShape,
+                extensionPackId: packId,
+                extensionItemId: itemId,
+                svgContent: item.svgContent,
+                labelPosition: 'below',
+                width: item.defaultWidth,
+                height: item.defaultHeight,
+              } as FlowNodeData,
+            };
+            addNode(newNode);
+            useFlowStore.getState().setSelectedNodes([newNode.id]);
+          }
+        } catch { /* ignore parse errors */ }
         return;
       }
 
