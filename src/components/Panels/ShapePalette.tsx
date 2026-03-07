@@ -1,8 +1,10 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ChevronsLeft, ChevronsRight, Pen, Rows3, Shapes } from 'lucide-react';
+import { ChevronsLeft, ChevronsRight, ChevronDown, ChevronRight, Pen, Pin, PinOff, Puzzle, Rows3, Shapes, Trash2, Upload } from 'lucide-react';
 import { useStyleStore } from '../../store/styleStore';
 import { useUIStore } from '../../store/uiStore';
 import { useSwimlaneStore } from '../../store/swimlaneStore';
+import { useExtensionStore, type ExtensionPack } from '../../extensions/extensionStore';
+import { parseSvgPack } from '../../extensions/parseSvgPack';
 import FloatingIconPicker from './FloatingIconPicker';
 import { CURSOR_OPEN_HAND, CURSOR_DRAG_ACTIVE } from '../../assets/cursors/cursors';
 
@@ -360,6 +362,186 @@ const MarkerColorPicker: React.FC<MarkerColorPickerProps> = ({ anchorRect, onClo
 };
 
 // ---------------------------------------------------------------------------
+// Extensions popover
+// ---------------------------------------------------------------------------
+
+interface ExtensionsPopoverProps {
+  anchorRect: DOMRect;
+  onClose: () => void;
+}
+
+const ExtensionsPopover: React.FC<ExtensionsPopoverProps> = ({ anchorRect, onClose }) => {
+  const darkMode = useStyleStore((s) => s.darkMode);
+  const packs = useExtensionStore((s) => s.packs);
+  const pinnedPackIds = useExtensionStore((s) => s.pinnedPackIds);
+  const togglePin = useExtensionStore((s) => s.togglePin);
+  const removePack = useExtensionStore((s) => s.removePack);
+  const addPack = useExtensionStore((s) => s.addPack);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [contextMenu, setContextMenu] = useState<{ packId: string; x: number; y: number } | null>(null);
+
+  const handleImport = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const pack = await parseSvgPack(file);
+      addPack(pack);
+    } catch (err) {
+      console.error('Failed to parse SVG pack:', err);
+    }
+    // Reset input so re-importing the same file triggers onChange
+    e.target.value = '';
+  }, [addPack]);
+
+  const handleContextMenu = useCallback((e: React.MouseEvent, pack: ExtensionPack) => {
+    if (pack.builtIn) return;
+    e.preventDefault();
+    setContextMenu({ packId: pack.id, x: e.clientX, y: e.clientY });
+  }, []);
+
+  return (
+    <>
+      {/* Fixed backdrop */}
+      <div className="fixed inset-0 z-40" onClick={onClose} />
+      <div
+        className={`fixed z-50 rounded-lg shadow-lg border p-2 w-56 max-h-80 overflow-y-auto ${
+          darkMode ? 'bg-dk-panel border-dk-border' : 'bg-white border-border'
+        }`}
+        style={{ top: anchorRect.top, left: anchorRect.right + 8 }}
+      >
+        <div className="text-xs font-semibold mb-1.5 text-text-muted dark:text-dk-muted">Extension Packs</div>
+
+        {packs.length === 0 && (
+          <div className="text-xs text-text-muted dark:text-dk-muted py-2 text-center">No packs loaded</div>
+        )}
+
+        {packs.map((pack) => {
+          const isPinned = pinnedPackIds.includes(pack.id);
+          return (
+            <button
+              key={pack.id}
+              onClick={() => togglePin(pack.id)}
+              onContextMenu={(e) => handleContextMenu(e, pack)}
+              className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-left text-xs cursor-pointer transition-colors ${
+                darkMode ? 'hover:bg-dk-hover' : 'hover:bg-slate-100'
+              }`}
+            >
+              {/* Pack icon thumbnail */}
+              <div
+                className="w-5 h-5 shrink-0 text-text-muted dark:text-dk-muted"
+                dangerouslySetInnerHTML={{ __html: pack.icon }}
+              />
+              {/* Pack name + count */}
+              <div className="flex-1 min-w-0 truncate text-text dark:text-dk-text">
+                {pack.name}
+                <span className="ml-1 text-text-muted dark:text-dk-muted">({pack.items.length})</span>
+              </div>
+              {/* Pin indicator */}
+              {isPinned
+                ? <Pin size={14} className="shrink-0 text-blue-500" />
+                : <PinOff size={14} className="shrink-0 text-text-muted dark:text-dk-muted opacity-40" />
+              }
+            </button>
+          );
+        })}
+
+        {/* Import button */}
+        <div className="border-t border-border dark:border-dk-border mt-1.5 pt-1.5">
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-xs cursor-pointer transition-colors ${
+              darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-text'
+            }`}
+          >
+            <Upload size={14} className="shrink-0" />
+            Import Pack...
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".zip"
+            style={{ display: 'none' }}
+            onChange={handleImport}
+          />
+        </div>
+      </div>
+
+      {/* Right-click context menu for removing custom packs */}
+      {contextMenu && (
+        <>
+          <div className="fixed inset-0 z-[60]" onClick={() => setContextMenu(null)} />
+          <div
+            className={`fixed z-[70] rounded shadow-lg border py-1 ${
+              darkMode ? 'bg-dk-panel border-dk-border' : 'bg-white border-border'
+            }`}
+            style={{ top: contextMenu.y, left: contextMenu.x }}
+          >
+            <button
+              onClick={() => { removePack(contextMenu.packId); setContextMenu(null); }}
+              className={`w-full flex items-center gap-2 px-3 py-1.5 text-xs cursor-pointer transition-colors ${
+                darkMode ? 'hover:bg-dk-hover text-red-400' : 'hover:bg-red-50 text-red-600'
+              }`}
+            >
+              <Trash2 size={13} />
+              Remove
+            </button>
+          </div>
+        </>
+      )}
+    </>
+  );
+};
+
+// ---------------------------------------------------------------------------
+// Pinned extension pack section
+// ---------------------------------------------------------------------------
+
+interface PinnedPackSectionProps {
+  pack: ExtensionPack;
+}
+
+const PinnedPackSection: React.FC<PinnedPackSectionProps> = React.memo(({ pack }) => {
+  const [expanded, setExpanded] = useState(true);
+
+  return (
+    <div className="w-full">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center gap-0.5 px-1 py-0.5 text-[10px] font-semibold text-text-muted dark:text-dk-muted truncate cursor-pointer hover:text-primary dark:hover:text-dk-text transition-colors"
+        data-tooltip-right={pack.name}
+      >
+        {expanded ? <ChevronDown size={10} className="shrink-0" /> : <ChevronRight size={10} className="shrink-0" />}
+        <span className="truncate">{pack.name}</span>
+      </button>
+      {expanded && (
+        <div className="flex flex-wrap gap-0.5 px-0.5 pb-1">
+          {pack.items.map((item) => (
+            <div
+              key={item.id}
+              draggable
+              onDragStart={(e) => {
+                e.dataTransfer.setData('application/charthero-extension', JSON.stringify({ packId: pack.id, itemId: item.id }));
+                e.dataTransfer.effectAllowed = 'move';
+              }}
+              data-tooltip-right={item.name}
+              style={{ cursor: CURSOR_OPEN_HAND }}
+              className="w-10 h-10 flex items-center justify-center rounded-lg transition-all duration-100 hover:bg-primary/10 hover:scale-105 active:scale-95"
+            >
+              <div
+                className="w-8 h-8 text-text-muted dark:text-dk-muted"
+                dangerouslySetInnerHTML={{ __html: item.svgContent }}
+              />
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+});
+
+PinnedPackSection.displayName = 'PinnedPackSection';
+
+// ---------------------------------------------------------------------------
 // Main ShapePalette
 // ---------------------------------------------------------------------------
 
@@ -376,8 +558,21 @@ const ShapePalette: React.FC = () => {
   const markerColor = useUIStore((s) => s.markerColor);
   const [iconPickerOpen, setIconPickerOpen] = useState(false);
   const [markerPickerOpen, setMarkerPickerOpen] = useState(false);
+  const [extensionsOpen, setExtensionsOpen] = useState(false);
   const markerBtnRef = useRef<HTMLButtonElement>(null);
+  const extensionsBtnRef = useRef<HTMLButtonElement>(null);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Extension store
+  const packs = useExtensionStore((s) => s.packs);
+  const pinnedPackIds = useExtensionStore((s) => s.pinnedPackIds);
+
+  // Load built-in packs on mount
+  useEffect(() => {
+    useExtensionStore.getState().loadBuiltInPacks();
+  }, []);
+
+  const pinnedPacks = packs.filter((p) => pinnedPackIds.includes(p.id));
 
   const handleShapeSelect = useCallback((type: string) => {
     // Toggle: click same shape to deselect
@@ -547,6 +742,30 @@ const ShapePalette: React.FC = () => {
                   <Rows3 size={26} />
                 </div>
               </div>
+
+              {/* Extensions button */}
+              <div className="w-full border-t border-border dark:border-dk-border my-1" />
+              <button
+                ref={extensionsBtnRef}
+                onClick={() => setExtensionsOpen(!extensionsOpen)}
+                data-tooltip-right="Extensions"
+                className={`relative flex items-center justify-center w-10 min-h-0 flex-1 max-h-10 rounded-lg
+                           transition-all duration-100 cursor-pointer
+                           hover:bg-primary/10 hover:scale-105
+                           ${extensionsOpen ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-800/15 text-blue-600 dark:text-blue-400' : 'text-text-muted hover:text-primary'}`}
+              >
+                <Puzzle size={20} />
+              </button>
+
+              {/* Pinned extension pack grids */}
+              {pinnedPacks.length > 0 && (
+                <>
+                  <div className="w-full border-t border-border dark:border-dk-border my-1" />
+                  {pinnedPacks.map((pack) => (
+                    <PinnedPackSection key={pack.id} pack={pack} />
+                  ))}
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -585,6 +804,14 @@ const ShapePalette: React.FC = () => {
         <MarkerColorPicker
           anchorRect={markerBtnRef.current.getBoundingClientRect()}
           onClose={() => setMarkerPickerOpen(false)}
+        />
+      )}
+
+      {/* Extensions popover */}
+      {extensionsOpen && extensionsBtnRef.current && (
+        <ExtensionsPopover
+          anchorRect={extensionsBtnRef.current.getBoundingClientRect()}
+          onClose={() => setExtensionsOpen(false)}
         />
       )}
     </div>
