@@ -116,6 +116,12 @@ export default defineConfig({
             './src/lib/ai/providers.ts',
           ],
           'collab-vendor': ['yjs', 'y-webrtc'],
+          'extensions': [
+            './src/extensions/packs/index.ts',
+            './src/extensions/packs/networkInfra.ts',
+            './src/extensions/packs/uxWireframe.ts',
+            './src/extensions/packs/peopleTeams.ts',
+          ],
         },
       },
     },
