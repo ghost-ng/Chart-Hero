@@ -11,7 +11,7 @@ Chart Hero offers 29 visual diagram themes and 21 color palettes that let you co
 Each style completely transforms the visual appearance of your diagram: canvas background, grid style, node fills, borders, fonts, edge colors, and accent palette. Applying a style updates every node and edge on the canvas at once.
 
 <div class="theme-carousel-section">
-<h4>Light Themes (15)</h4>
+<h4>Light Themes (16)</h4>
 <div class="theme-slider-wrapper">
 <button class="theme-nav prev" aria-label="Previous">&#8249;</button>
 <div class="theme-slider"><div class="theme-slider-track">
@@ -30,6 +30,7 @@ Each style completely transforms the visual appearance of your diagram: canvas b
 <div class="theme-card"><img src="assets/themes/theme-paperPrint.png" alt="Paper Print" /><div class="theme-label">Paper Print</div><div class="theme-meta">Georgia &middot; Book typography</div></div>
 <div class="theme-card"><img src="assets/themes/theme-osxAqua.png" alt="macOS Aqua" /><div class="theme-label">macOS Aqua</div><div class="theme-meta">SF Pro Display &middot; Clean Apple design</div></div>
 <div class="theme-card"><img src="assets/themes/theme-claudeAI.png" alt="Claude" /><div class="theme-label">Claude</div><div class="theme-meta">Inter &middot; Warm terracotta tones</div></div>
+<div class="theme-card"><img src="assets/themes/theme-openAI.png" alt="OpenAI" /><div class="theme-label">OpenAI</div><div class="theme-meta">Inter &middot; Light canvas, dark blocks with green accents</div></div>
 </div></div>
 <button class="theme-nav next" aria-label="Next">&#8250;</button>
 <div class="theme-dots"></div>
@@ -37,7 +38,7 @@ Each style completely transforms the visual appearance of your diagram: canvas b
 </div>
 
 <div class="theme-carousel-section">
-<h4>Dark Themes (11)</h4>
+<h4>Dark Themes (10)</h4>
 <div class="theme-slider-wrapper">
 <button class="theme-nav prev" aria-label="Previous">&#8249;</button>
 <div class="theme-slider"><div class="theme-slider-track">
@@ -51,7 +52,6 @@ Each style completely transforms the visual appearance of your diagram: canvas b
 <div class="theme-card"><img src="assets/themes/theme-auroraBorealis.png" alt="Aurora Borealis" /><div class="theme-label">Aurora Borealis</div><div class="theme-meta">Inter &middot; Northern lights neon</div></div>
 <div class="theme-card"><img src="assets/themes/theme-neonGlass.png" alt="Neon Glass" /><div class="theme-label">Neon Glass</div><div class="theme-meta">JetBrains Mono &middot; Neon frosted glass</div></div>
 <div class="theme-card"><img src="assets/themes/theme-solarizedDark.png" alt="Solarized Dark" /><div class="theme-label">Solarized Dark</div><div class="theme-meta">Source Code Pro &middot; Solarized palette</div></div>
-<div class="theme-card"><img src="assets/themes/theme-openAI.png" alt="OpenAI" /><div class="theme-label">OpenAI</div><div class="theme-meta">Inter &middot; Dark with green accents</div></div>
 </div></div>
 <button class="theme-nav next" aria-label="Next">&#8250;</button>
 <div class="theme-dots"></div>
@@ -125,7 +125,7 @@ Dark mode inverts the application UI (toolbar, panels, menus, dialogs) to a dark
 - **AI command**: "Switch to dark mode" or "Turn on dark mode"
 - Canvas background adapts to the current diagram style
 - Can be toggled independently of diagram style -- light themes still work in dark mode, with only the panels and menus inverted
-- Dark diagram styles (Blueprint, Neon Dark, Midnight Luxe, Aurora Borealis, Glass Morphism, Neon Glass, Solarized Dark, OpenAI, etc.) look best with dark mode enabled (`Ctrl+Shift+K`)
+- Dark diagram styles (Blueprint, Neon Dark, Midnight Luxe, Aurora Borealis, Glass Morphism, Neon Glass, Solarized Dark, etc.) look best with dark mode enabled (`Ctrl+Shift+K`)
 
 ---
 

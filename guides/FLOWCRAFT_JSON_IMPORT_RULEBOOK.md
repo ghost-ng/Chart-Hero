@@ -409,7 +409,7 @@ Apply a visual theme to the entire diagram.
 | `osxAqua` | Light macOS-inspired clean design |
 | `solarizedDark` | Solarized dark color scheme |
 | `claudeAI` | Anthropic Claude warm terracotta tones |
-| `openAI` | OpenAI dark theme with green accents |
+| `openAI` | OpenAI light canvas with dark blocks and green accents |
 
 ### 6.2 Available Palette IDs
 
@@ -1254,7 +1254,7 @@ When using dark styles (`darkMode: true` or dark diagram styles like `neonDark`,
 - **Pastel fills** — Pale colors like `#dbeafe` look washed out on dark backgrounds. Use saturated versions (`#3b82f6`)
 - **Default `textColor: "#ffffff"`** on light-filled nodes — If a node has `"color": "#fbbf24"` (yellow) in dark mode, the white text may lack contrast. Use `"textColor": "#1e293b"` (dark) instead
 
-**Dark-friendly style IDs:** `neonDark`, `retroTerminal`, `darkNeonGlow`, `cyberC2`, `militaryC2`, `glassMorphism`, `midnightLuxe`, `auroraBorealis`, `neonGlass`, `solarizedDark`, `openAI`
+**Dark-friendly style IDs:** `neonDark`, `retroTerminal`, `darkNeonGlow`, `cyberC2`, `militaryC2`, `glassMorphism`, `midnightLuxe`, `auroraBorealis`, `neonGlass`, `solarizedDark`
 
 **Example — dark mode system diagram:**
 ```json
@@ -1349,7 +1349,7 @@ Before finalizing a diagram JSON, verify:
 
 ### 15.3 Dark Mode Tips
 
-18. **Set `darkMode: true` in styles** AND choose a dark-friendly style ID (`neonDark`, `darkNeonGlow`, `cyberC2`, `retroTerminal`, `midnightLuxe`, `auroraBorealis`, `neonGlass`, `solarizedDark`, `openAI`).
+18. **Set `darkMode: true` in styles** AND choose a dark-friendly style ID (`neonDark`, `darkNeonGlow`, `cyberC2`, `retroTerminal`, `midnightLuxe`, `auroraBorealis`, `neonGlass`, `solarizedDark`).
 
 19. **Use saturated fill colors** — Pale/pastel fills look washed out on dark backgrounds. Use full-saturation colors (`#3b82f6` not `#dbeafe`).
 

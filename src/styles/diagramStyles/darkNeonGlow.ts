@@ -17,7 +17,7 @@ export const darkNeonGlow: DiagramStyle = {
     shadow: '0 0 16px rgba(255, 45, 149, 0.4), 0 0 6px rgba(255, 45, 149, 0.2)',
     fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
     fontSize: 13,
-    fontColor: '#00ffff',
+    fontColor: '#ffffff',
     fontWeight: 500,
   },
   edgeDefaults: {

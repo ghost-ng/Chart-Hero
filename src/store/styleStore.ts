@@ -100,7 +100,7 @@ export const useStyleStore = create<StyleState>()(
           if (style.dark) {
             const veryDarkIds = new Set([
               'retroTerminal', 'midnightLuxe', 'darkNeonGlow',
-              'blueprint', 'openAI', 'auroraBorealis',
+              'blueprint', 'auroraBorealis',
               'glassMorphism', 'neonGlass',
             ]);
             laneOpacity = veryDarkIds.has(styleId) ? 18 : 25;

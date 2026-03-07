@@ -38,9 +38,9 @@ export const whiteboardSketch: DiagramStyle = {
     cloud: '#818cf8',
     stickyNote: '#fef3c7',
     textbox: 'transparent',
-    blockArrow: '#8b6f47',
-    chevronArrow: '#a0845c',
-    doubleArrow: '#7a6240',
-    circularArrow: '#6b5335',
+    blockArrow: '#f59e0b',
+    chevronArrow: '#34d399',
+    doubleArrow: '#a78bfa',
+    circularArrow: '#fb7185',
   },
 };
