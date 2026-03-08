@@ -12,6 +12,7 @@ import {
   Rows3,
   Columns3,
   Grid3X3,
+  Check,
   Copy,
   ChevronsLeft,
   ChevronsRight,
@@ -97,6 +98,27 @@ const ResetIcon: React.FC<{ visible: boolean; onReset: () => void }> = ({ visibl
       className="p-0.5 rounded hover:bg-slate-100 dark:hover:bg-dk-hover text-slate-400 hover:text-slate-600 dark:text-dk-faint dark:hover:text-dk-text transition-colors cursor-pointer"
     >
       <RotateCcw size={12} />
+    </button>
+  );
+};
+
+// ---------------------------------------------------------------------------
+// CopyHexButton — small clipboard copy button for hex color inputs
+// ---------------------------------------------------------------------------
+
+const CopyHexButton: React.FC<{ value: string }> = ({ value }) => {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      className="p-1 rounded hover:bg-slate-100 dark:hover:bg-dk-hover text-slate-400 hover:text-slate-600 dark:text-dk-muted dark:hover:text-dk-text transition-colors cursor-pointer"
+      onClick={() => {
+        navigator.clipboard.writeText(value);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1200);
+      }}
+      data-tooltip-left={copied ? 'Copied!' : 'Copy hex'}
+    >
+      {copied ? <Check size={12} /> : <Copy size={12} />}
     </button>
   );
 };
@@ -806,6 +828,7 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, no
                 className="flex-1 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white dark:bg-dk-input dark:text-dk-text dark:border-dk-border
                            focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
               />
+              <CopyHexButton value={fillColor} />
               <ResetIcon
                 visible={anyHasColorOverride}
                 onReset={() => update({ color: undefined })}
@@ -851,6 +874,7 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, no
                 className="flex-1 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white dark:bg-dk-input dark:text-dk-text dark:border-dk-border
                            focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
               />
+              <CopyHexButton value={borderColor} />
               <ResetIcon
                 visible={anyHasBorderColorOverride}
                 onReset={() => update({ borderColor: undefined })}
@@ -929,6 +953,7 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, no
                 className="flex-1 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white dark:bg-dk-input dark:text-dk-text dark:border-dk-border
                            focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
               />
+              <CopyHexButton value={textColor} />
               <ResetIcon
                 visible={!!activeStyleId && !!data.textColor}
                 onReset={() => update({ textColor: undefined })}

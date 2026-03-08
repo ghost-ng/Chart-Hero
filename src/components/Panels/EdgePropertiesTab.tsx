@@ -3,7 +3,7 @@
 // ---------------------------------------------------------------------------
 
 import React, { useCallback, useState, useEffect } from 'react';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { Check, ChevronDown, ChevronRight, Copy } from 'lucide-react';
 import { useFlowStore, type FlowEdgeData } from '../../store/flowStore';
 
 // ---------------------------------------------------------------------------
@@ -41,6 +41,27 @@ const SectionHeader: React.FC<{
     {collapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
   </button>
 );
+
+// ---------------------------------------------------------------------------
+// CopyHexButton — small clipboard copy button for hex color inputs
+// ---------------------------------------------------------------------------
+
+const CopyHexButton: React.FC<{ value: string }> = ({ value }) => {
+  const [copied, setCopied] = React.useState(false);
+  return (
+    <button
+      className="p-1 rounded hover:bg-slate-100 dark:hover:bg-dk-hover text-slate-400 hover:text-slate-600 dark:text-dk-muted dark:hover:text-dk-text transition-colors cursor-pointer"
+      onClick={() => {
+        navigator.clipboard.writeText(value);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1200);
+      }}
+      data-tooltip-left={copied ? 'Copied!' : 'Copy hex'}
+    >
+      {copied ? <Check size={12} /> : <Copy size={12} />}
+    </button>
+  );
+};
 
 // ---------------------------------------------------------------------------
 // Edge type options
@@ -360,6 +381,7 @@ const EdgePropertiesTab: React.FC<EdgePropertiesTabProps> = React.memo(
                              dark:bg-dk-panel dark:border-dk-border dark:text-dk-text
                              focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
                 />
+                <CopyHexButton value={strokeColor} />
               </div>
             </Field>
 
@@ -515,6 +537,7 @@ const EdgePropertiesTab: React.FC<EdgePropertiesTabProps> = React.memo(
                                dark:bg-dk-panel dark:border-dk-border dark:text-dk-text
                                focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
                   />
+                  <CopyHexButton value={(edgeData as Record<string, unknown>).labelColor as string || '#475569'} />
                 </div>
               </Field>
             )}
@@ -557,6 +580,7 @@ const EdgePropertiesTab: React.FC<EdgePropertiesTabProps> = React.memo(
                                dark:bg-dk-panel dark:border-dk-border dark:text-dk-text
                                focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
                   />
+                  <CopyHexButton value={(edgeData as Record<string, unknown>).labelBgColor as string || '#ffffff'} />
                 </div>
               </Field>
             )}
