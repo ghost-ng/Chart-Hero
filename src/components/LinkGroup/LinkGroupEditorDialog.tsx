@@ -118,7 +118,12 @@ const LinkGroupEditorDialog: React.FC = () => {
   const itemBg = darkMode ? 'bg-dk-hover' : 'bg-gray-50';
 
   return (
-    <div className="fixed inset-0 pointer-events-none" style={{ zIndex: 1000 }}>
+    <div className="fixed inset-0 pointer-events-auto" style={{ zIndex: 1000 }}>
+      {/* Backdrop — blocks canvas clicks, closes editor on click */}
+      <div
+        className="absolute inset-0 bg-black/10"
+        onClick={closeLinkGroupEditor}
+      />
       {/* Dialog positioned top-right */}
       <div
         className={`pointer-events-auto absolute top-16 right-4 w-72 rounded-lg border shadow-xl ${bg} ${textPrimary}`}
