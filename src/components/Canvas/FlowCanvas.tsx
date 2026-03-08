@@ -1212,6 +1212,21 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
 
   const onNodeClick = useCallback(
     (_event: React.MouseEvent, node: FlowNode) => {
+      // Shift-click to toggle node selection (deselect if already selected)
+      if (_event.shiftKey) {
+        const store = useFlowStore.getState();
+        const isSelected = store.selectedNodes.includes(node.id);
+        if (isSelected && store.selectedNodes.length > 1) {
+          // Remove from multi-selection
+          const newSelection = store.selectedNodes.filter((nid) => nid !== node.id);
+          store.setSelectedNodes(newSelection);
+          _event.stopPropagation();
+          return;
+        }
+        // If not selected or only one selected, let React Flow handle adding to selection
+        return;
+      }
+
       // Skip interactions for connector endpoint nodes
       if ((node.data as FlowNodeData).isConnectorEndpoint) return;
       // Link group add-mode: clicking a node adds it to the group
@@ -1264,6 +1279,19 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
 
   const onEdgeClick = useCallback(
     (_event: React.MouseEvent, edge: FlowEdge) => {
+      // Shift-click to toggle edge selection (deselect if already selected)
+      if (_event.shiftKey) {
+        const store = useFlowStore.getState();
+        const isSelected = store.selectedEdges.includes(edge.id);
+        if (isSelected && store.selectedEdges.length > 1) {
+          const newSelection = store.selectedEdges.filter((eid) => eid !== edge.id);
+          store.setSelectedEdges(newSelection);
+          _event.stopPropagation();
+          return;
+        }
+        return;
+      }
+
       if (!formatPainterActive || !formatPainterEdgeStyle) return;
       const s = formatPainterEdgeStyle;
       const patch: Record<string, unknown> = {};
