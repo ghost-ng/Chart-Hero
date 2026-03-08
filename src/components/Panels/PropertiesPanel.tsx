@@ -882,6 +882,28 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, no
             </div>
           </Field>
 
+          {/* Border Opacity */}
+          <Field label="Border Opacity">
+            <div className="flex items-center gap-2">
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.05}
+                value={data.borderOpacity ?? 1}
+                onChange={(e) => update({ borderOpacity: Number(e.target.value) })}
+                className="flex-1 accent-primary"
+              />
+              <span className="text-xs text-muted dark:text-dk-muted w-10 text-right">
+                {Math.round((data.borderOpacity ?? 1) * 100)}%
+              </span>
+              <ResetIcon
+                visible={(data.borderOpacity ?? 1) < 1}
+                onReset={() => update({ borderOpacity: undefined })}
+              />
+            </div>
+          </Field>
+
           {/* Border Width */}
           <Field label="Border Width">
             <div className="flex items-center gap-2">

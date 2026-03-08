@@ -862,12 +862,17 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   };
   const effectiveFill = noBox ? 'transparent' : applyOpacity(fillColor, opacity);
   const effectiveBorder = applyOpacity(borderColor, opacity);
+  // Apply border opacity
+  const borderOpacity = nodeData.borderOpacity ?? 1;
+  const effectiveBorderFinal = (borderOpacity < 1 && effectiveBorder && effectiveBorder !== 'transparent')
+    ? (() => { try { return chroma(effectiveBorder).alpha(chroma(effectiveBorder).alpha() * borderOpacity).css(); } catch { return effectiveBorder; } })()
+    : effectiveBorder;
   const effectiveOutline = hasDashedBorder
-    ? `${borderW}px ${borderStyleProp} ${effectiveBorder}`
+    ? `${borderW}px ${borderStyleProp} ${effectiveBorderFinal}`
     : 'none';
   // Rebuild shadow with opacity-adjusted colors
   const oBorderShadow = (!noBox && borderColor !== 'transparent' && !hasDashedBorder)
-    ? `0 0 0 ${borderW}px ${effectiveBorder}`
+    ? `0 0 0 ${borderW}px ${effectiveBorderFinal}`
     : '';
   const oDropShadow = (!noBox && !isSelected && !isInEditedGroup && opacity >= 0.3)
     ? '0 1px 3px rgba(0,0,0,0.1)'
