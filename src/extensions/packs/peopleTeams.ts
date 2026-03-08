@@ -26,8 +26,8 @@ export const peopleTeamsPack: ExtensionPack = {
       id: 'ppl-person-circle',
       name: 'Person (Avatar)',
       viewBox: '0 0 64 64',
-      defaultWidth: 64,
-      defaultHeight: 80,
+      defaultWidth: 70,
+      defaultHeight: 70,
       tags: ['person', 'avatar', 'profile', 'portrait'],
       svgContent:
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">' +

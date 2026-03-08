@@ -13,8 +13,8 @@ export const businessProcessPack: ExtensionPack = {
       id: 'bp-document',
       name: 'Document',
       viewBox: '0 0 64 64',
-      defaultWidth: 80,
-      defaultHeight: 80,
+      defaultWidth: 70,
+      defaultHeight: 90,
       tags: ['document', 'file', 'paper', 'report'],
       svgContent:
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">' +
@@ -29,8 +29,8 @@ export const businessProcessPack: ExtensionPack = {
       id: 'bp-form',
       name: 'Form',
       viewBox: '0 0 64 64',
-      defaultWidth: 80,
-      defaultHeight: 80,
+      defaultWidth: 70,
+      defaultHeight: 90,
       tags: ['form', 'input', 'fields', 'submission'],
       svgContent:
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">' +
@@ -46,8 +46,8 @@ export const businessProcessPack: ExtensionPack = {
       id: 'bp-clipboard',
       name: 'Checklist',
       viewBox: '0 0 64 64',
-      defaultWidth: 80,
-      defaultHeight: 80,
+      defaultWidth: 70,
+      defaultHeight: 90,
       tags: ['checklist', 'clipboard', 'tasks', 'todo'],
       svgContent:
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">' +
@@ -179,8 +179,8 @@ export const businessProcessPack: ExtensionPack = {
       id: 'bp-invoice',
       name: 'Invoice',
       viewBox: '0 0 64 64',
-      defaultWidth: 80,
-      defaultHeight: 80,
+      defaultWidth: 70,
+      defaultHeight: 90,
       tags: ['invoice', 'receipt', 'bill', 'statement'],
       svgContent:
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">' +

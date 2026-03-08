@@ -389,8 +389,8 @@ export const networkInfraPack: ExtensionPack = {
       id: 'net-laptop',
       name: 'Laptop',
       viewBox: '0 0 64 64',
-      defaultWidth: 80,
-      defaultHeight: 80,
+      defaultWidth: 90,
+      defaultHeight: 70,
       tags: ['laptop', 'computer', 'client', 'endpoint', 'workstation'],
       svgContent:
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">' +
@@ -425,8 +425,8 @@ export const networkInfraPack: ExtensionPack = {
       id: 'net-mobile',
       name: 'Mobile Phone',
       viewBox: '0 0 64 64',
-      defaultWidth: 80,
-      defaultHeight: 80,
+      defaultWidth: 50,
+      defaultHeight: 90,
       tags: ['mobile', 'phone', 'smartphone', 'device', 'endpoint'],
       svgContent:
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">' +

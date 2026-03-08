@@ -269,8 +269,8 @@ export const dataAnalyticsPack: ExtensionPack = {
       id: 'da-report',
       name: 'Report',
       viewBox: '0 0 64 64',
-      defaultWidth: 80,
-      defaultHeight: 100,
+      defaultWidth: 70,
+      defaultHeight: 90,
       tags: ['report', 'document', 'analysis', 'summary'],
       svgContent:
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">' +
