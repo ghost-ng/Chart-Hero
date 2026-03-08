@@ -91,6 +91,30 @@ const App: React.FC = () => {
 
   // Delete selected
   const handleDeleteSelected = useCallback(() => {
+    // Delete selected pucks first (if any are selected)
+    const uiState = useUIStore.getState();
+    if (uiState.selectedPuckIds.length > 0) {
+      const { nodes, removeStatusPuck } = useFlowStore.getState();
+      for (const puckId of uiState.selectedPuckIds) {
+        if (uiState.selectedPuckNodeId) {
+          // Pucks selected on a single node
+          removeStatusPuck(uiState.selectedPuckNodeId, puckId);
+        } else {
+          // Global selection — find which node owns this puck
+          for (const n of nodes) {
+            const pucks = getStatusIndicators(n.data);
+            if (pucks.some((p) => p.id === puckId)) {
+              removeStatusPuck(n.id, puckId);
+              break;
+            }
+          }
+        }
+      }
+      uiState.clearPuckSelection();
+      return; // Don't also delete nodes
+    }
+
+    // Existing node deletion
     const { selectedNodes, removeNode } = useFlowStore.getState();
     for (const id of selectedNodes) {
       removeNode(id);

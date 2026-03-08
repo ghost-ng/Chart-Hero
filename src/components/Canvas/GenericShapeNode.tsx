@@ -581,6 +581,17 @@ const StatusBadge: React.FC<StatusBadgeProps & { nodeId: string; puckId: string;
             >
               All pucks (global)
             </button>
+            <div className="h-px bg-slate-200 dark:bg-dk-border my-0.5" />
+            <button
+              onClick={() => {
+                useFlowStore.getState().removeStatusPuck(nodeId, puckId);
+                useUIStore.getState().clearPuckSelection();
+                setCtxMenu(null);
+              }}
+              className="flex items-center gap-2 w-full px-3 py-1.5 text-left hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 cursor-pointer"
+            >
+              Delete Puck
+            </button>
           </div>
         </>,
         document.body,
