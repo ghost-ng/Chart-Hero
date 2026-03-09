@@ -35,6 +35,7 @@ import EdgePropertiesTab from './EdgePropertiesTab';
 import IconPicker from './IconPicker';
 import {
   useSwimlaneStore,
+  type SwimlaneConfig,
   type SwimlaneOrientation,
   type SwimlaneItem,
   type BorderStyleType,
@@ -1718,10 +1719,12 @@ const BORDER_STYLE_OPTIONS: { value: BorderStyleType; label: string }[] = [
   { value: 'none', label: 'None' },
 ];
 
+const EMPTY_SWIMLANE_CONFIG: SwimlaneConfig = { orientation: 'horizontal', containerTitle: '', horizontal: [], vertical: [] };
+
 const SwimlanePanel: React.FC = React.memo(() => {
   const config = useSwimlaneStore((s) => {
     const c = s.containers.find((c) => c.id === s.activeContainerId);
-    return c?.config ?? { orientation: 'horizontal' as const, containerTitle: '', horizontal: [], vertical: [] };
+    return c?.config ?? EMPTY_SWIMLANE_CONFIG;
   });
   const addLane = useSwimlaneStore((s) => s.addLane);
   const removeLane = useSwimlaneStore((s) => s.removeLane);

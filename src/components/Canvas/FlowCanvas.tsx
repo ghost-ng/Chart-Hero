@@ -1627,10 +1627,6 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
         </div>
       )}
 
-      {/* Legend overlays rendered behind the flow canvas — independent node + swimlane */}
-      {nodeLegendVisible && <LegendOverlay which="node" />}
-      {swimlaneLegendVisible && <LegendOverlay which="swimlane" />}
-
       {/* Swimlane layer — rendered BEFORE ReactFlow so it sits behind everything
           (behind grid, behind nodes/edges). Z-order: swimlane → grid → canvas */}
       {hasLanes && <SwimlaneLayer />}
@@ -1682,6 +1678,7 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
         multiSelectionKeyCode={(presentationMode || drawingMode) ? null : "Shift"}
         elevateNodesOnSelect={false}
         minZoom={0.3}
+        maxZoom={3}
         fitView
         attributionPosition="bottom-left"
         className={`${darkMode ? 'dark' : ''}${rulerVisible ? ' ruler-active' : ''}${ctrlPressed ? ' pan-mode' : ''}`}
@@ -1802,6 +1799,10 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
 
       {/* SVG arrowhead marker definitions (must be in DOM for url(#...) refs) */}
       <MarkerDefs />
+
+      {/* Legend overlays rendered ABOVE ReactFlow so they sit on top of the grid and are draggable */}
+      {nodeLegendVisible && <LegendOverlay which="node" />}
+      {swimlaneLegendVisible && <LegendOverlay which="swimlane" />}
 
       {/* Swimlane resize handles rendered ABOVE ReactFlow so they receive mouse events */}
       {hasLanes && <div data-export-ignore><SwimlaneResizeOverlay readOnly={presentationMode} /></div>}

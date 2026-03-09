@@ -7,7 +7,7 @@
 
 import React, { useLayoutEffect, useRef, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { PaintBucket, SquareDashed } from 'lucide-react';
+import { PaintBucket, SquareDashed, RotateCcw } from 'lucide-react';
 
 const PAD = 8;
 
@@ -122,7 +122,11 @@ export const ColorSwatchSidebar: React.FC<{
   /** Border opacity 0-1, shown as vertical slider on right edge */
   borderOpacity?: number;
   onBorderOpacityChange?: (v: number) => void;
-}> = ({ darkMode, menuRef, colors, onSelectColor, onSelectColor2, fillOpacity, onFillOpacityChange, borderOpacity, onBorderOpacityChange }) => {
+  /** Reset fill color to theme default */
+  onResetFill?: () => void;
+  /** Reset border color to theme default */
+  onResetBorder?: () => void;
+}> = ({ darkMode, menuRef, colors, onSelectColor, onSelectColor2, fillOpacity, onFillOpacityChange, borderOpacity, onBorderOpacityChange, onResetFill, onResetBorder }) => {
   const panelRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
 
@@ -207,6 +211,15 @@ export const ColorSwatchSidebar: React.FC<{
                 style={{ backgroundColor: color }}
               />
             ))}
+            {onResetFill && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onResetFill(); }}
+                className={`flex items-center justify-center w-5 h-5 rounded cursor-pointer transition-colors ${darkMode ? 'text-dk-faint hover:text-dk-text hover:bg-dk-hover' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}
+                data-tooltip="Reset Fill"
+              >
+                <RotateCcw size={10} />
+              </button>
+            )}
           </div>
           {/* Border column */}
           <div className="flex flex-col items-center gap-1">
@@ -221,6 +234,15 @@ export const ColorSwatchSidebar: React.FC<{
                 style={{ backgroundColor: color }}
               />
             ))}
+            {onResetBorder && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onResetBorder(); }}
+                className={`flex items-center justify-center w-5 h-5 rounded cursor-pointer transition-colors ${darkMode ? 'text-dk-faint hover:text-dk-text hover:bg-dk-hover' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}
+                data-tooltip="Reset Border"
+              >
+                <RotateCcw size={10} />
+              </button>
+            )}
           </div>
           {/* Border opacity slider */}
           {onBorderOpacityChange && (

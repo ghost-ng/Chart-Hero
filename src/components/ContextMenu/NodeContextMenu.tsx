@@ -755,6 +755,8 @@ const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
         onFillOpacityChange={(v) => { updateNodeData(nodeId, { fillOpacity: v }); }}
         borderOpacity={currentBorderOpacity}
         onBorderOpacityChange={(v) => { updateNodeData(nodeId, { borderOpacity: v }); }}
+        onResetFill={() => { updateNodeData(nodeId, { color: undefined, fillOpacity: undefined }); }}
+        onResetBorder={() => { updateNodeData(nodeId, { borderColor: undefined, borderOpacity: undefined }); }}
       />
     </div>
   );

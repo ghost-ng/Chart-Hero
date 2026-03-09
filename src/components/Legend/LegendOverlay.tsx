@@ -626,7 +626,7 @@ const LegendOverlay: React.FC<LegendOverlayProps> = ({ which }) => {
     <>
       <div
         className="absolute inset-0 pointer-events-none overflow-hidden"
-        style={{ zIndex: 1 }}
+        style={{ zIndex: 4 }}
       >
         <div
           style={{

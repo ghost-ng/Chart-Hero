@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { GripVertical, Eye, Palette, Pencil, Trash2, EyeClosed, ChevronRight, Check } from 'lucide-react';
 import { useSwimlaneStore, type SwimlaneOrientation } from '../../store/swimlaneStore';
 import { useUIStore } from '../../store/uiStore';
+import { useMenuPosition } from '../ContextMenu/menuUtils';
 
 // ---------------------------------------------------------------------------
 // Color palette for quick lane color changes
@@ -85,18 +86,13 @@ const LaneContextMenu: React.FC<LaneContextMenuProps> = ({
     };
   }, [onClose]);
 
+  const menuStyle = useMenuPosition(x, y, menuRef);
+
   if (!lane) return null;
 
   const labelVisible = lane.showLabel ?? true;
   const colorVisible = lane.showColor ?? true;
   const laneHidden = lane.hidden ?? false;
-
-  const menuW = 190;
-  const menuH = 260;
-  const vw = window.innerWidth;
-  const vh = window.innerHeight;
-  const adjustedX = x + menuW > vw ? vw - menuW - 8 : x;
-  const adjustedY = y + menuH > vh ? vh - menuH - 8 : y;
 
   const btnClass = `flex items-center gap-2 w-full px-3 py-1.5 text-left text-sm rounded transition-colors duration-75 cursor-pointer ${
     darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'
@@ -109,10 +105,10 @@ const LaneContextMenu: React.FC<LaneContextMenuProps> = ({
     <div className="fixed inset-0" style={{ zIndex: 9999 }} onMouseDown={onClose} />
     <div
       ref={menuRef}
-      className={`fixed min-w-[180px] rounded-lg shadow-xl border p-1 ${
+      className={`min-w-[180px] rounded-lg shadow-xl border p-1 ${
         darkMode ? 'bg-dk-panel border-dk-border' : 'bg-white border-slate-200'
       }`}
-      style={{ left: adjustedX, top: adjustedY, zIndex: 10000 }}
+      style={menuStyle}
     >
       {/* Lane label at top */}
       <div className={`px-3 py-1.5 text-xs font-semibold ${darkMode ? 'text-dk-muted' : 'text-slate-400'} uppercase tracking-wider`}>

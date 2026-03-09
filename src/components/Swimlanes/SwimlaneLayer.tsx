@@ -688,7 +688,7 @@ const SwimlaneLayer: React.FC = () => {
   return (
     <div
       className="absolute inset-0 pointer-events-none overflow-hidden"
-      style={{ zIndex: 0, isolation: 'isolate' }}
+      style={{ zIndex: 3, isolation: 'isolate' }}
     >
       {containers.map((container) => {
         const config = container.config;
