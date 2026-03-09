@@ -130,7 +130,7 @@ input[type="range"] {
   --cursor-drag: url('../assets/cursors/cursor_drag.png') 14 14, grab;
   --cursor-drag-active: url('../assets/cursors/cursor_drag.png') 14 14, grabbing;
   --cursor-crosshair: url('../assets/cursors/cursor_crosshair.png') 14 14, crosshair;
-  --cursor-open-hand: url('../assets/cursors/open_hand.png') 11 11, grab;
+  --cursor-open-hand: url('../assets/cursors/open_hand.png') 8 8, grab;
   --cursor-elbow-move: url('../assets/cursors/cursor_elbow_move.png') 16 16, grab;
   --cursor-move: url('../assets/cursors/move_main.png') 14 14, move;
 }

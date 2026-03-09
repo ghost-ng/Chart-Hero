@@ -2,8 +2,9 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Handle, Position, NodeResizer, type NodeProps } from '@xyflow/react';
 import { icons } from 'lucide-react';
 import chroma from 'chroma-js';
-import { useFlowStore, type FlowNodeData } from '../../store/flowStore';
+import { useFlowStore, type FlowNodeData, getStatusIndicators } from '../../store/flowStore';
 import { useUIStore } from '../../store/uiStore';
+import { StatusBadge } from './GenericShapeNode';
 
 const GroupNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const nodeData = data as FlowNodeData;
@@ -241,6 +242,33 @@ const GroupNode: React.FC<NodeProps> = ({ id, data, selected }) => {
           updateNodeData(id, { width: params.width, height: params.height });
         }}
       />
+
+      {/* Status puck badges */}
+      {(() => {
+        const pucks = getStatusIndicators(nodeData);
+        const positionCounters: Record<string, number> = {};
+        return pucks.map((puck) => {
+          const pos = puck.position ?? 'top-right';
+          const idx = positionCounters[pos] ?? 0;
+          positionCounters[pos] = idx + 1;
+          return (
+            <StatusBadge
+              key={puck.id}
+              statusIndicator={puck}
+              nodeId={id}
+              puckId={puck.id!}
+              indexInGroup={idx}
+              shape="rectangle"
+              onUpdatePosition={(newPos) => {
+                useFlowStore.getState().updateStatusPuck(id, puck.id!, { position: newPos as any });
+              }}
+              onUpdateSize={(newSize) => {
+                useFlowStore.getState().updateStatusPuck(id, puck.id!, { size: newSize });
+              }}
+            />
+          );
+        });
+      })()}
 
       {/* Rotation handle — visible only when selected */}
       {selected && (

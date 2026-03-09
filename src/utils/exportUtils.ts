@@ -5,7 +5,7 @@
 import React, { createElement } from 'react';
 import { flushSync } from 'react-dom';
 import { createRoot } from 'react-dom/client';
-import { toPng, toJpeg, toSvg } from 'html-to-image';
+import { toPng, toSvg } from 'html-to-image';
 import { saveAs } from 'file-saver';
 import jsPDF from 'jspdf';
 import PptxGenJS from 'pptxgenjs';
@@ -44,22 +44,90 @@ import {
  * Uses `[data-charthero-canvas-area]` which wraps swimlane layers + ReactFlow.
  * Falls back to `.react-flow` if the wrapper isn't found.
  *
- * When `includeBanners` is true and banners are enabled, returns
- * `[data-charthero-capture-area]` instead (outer flex wrapper that includes banners).
+ * Always returns the canvas area (never the capture-area wrapper).
+ * Banners are composited AFTER capture via `compositeBanners()`.
  */
-export function getReactFlowElement(includeBanners?: boolean): HTMLElement {
-  if (includeBanners) {
-    const { topBanner, bottomBanner } = useBannerStore.getState();
-    if (topBanner.enabled || bottomBanner.enabled) {
-      const captureArea = document.querySelector<HTMLElement>('[data-charthero-capture-area]');
-      if (captureArea) return captureArea;
-    }
-  }
+export function getReactFlowElement(_includeBanners?: boolean): HTMLElement {
   const canvasArea = document.querySelector<HTMLElement>('[data-charthero-canvas-area]');
   if (canvasArea) return canvasArea;
   const container = document.querySelector<HTMLElement>('.react-flow');
   if (container) return container;
   throw new Error('Could not find React Flow element in the DOM');
+}
+
+/**
+ * After capturing the canvas as a data URL, composite banner bars above/below
+ * the main image so they don't clip nearby nodes.  Returns a new data URL.
+ */
+async function compositeBanners(canvasDataUrl: string, scale: number): Promise<string> {
+  const { topBanner, bottomBanner } = useBannerStore.getState();
+  const hasTop = topBanner.enabled;
+  const hasBottom = bottomBanner.enabled;
+  if (!hasTop && !hasBottom) return canvasDataUrl;
+
+  // Load the main image
+  const img = new Image();
+  img.src = canvasDataUrl;
+  await new Promise<void>((resolve, reject) => {
+    img.onload = () => resolve();
+    img.onerror = () => reject(new Error('Failed to load captured image for banner compositing'));
+  });
+
+  const topH = hasTop ? Math.round(topBanner.height * scale) : 0;
+  const bottomH = hasBottom ? Math.round(bottomBanner.height * scale) : 0;
+  const totalW = img.width;
+  const totalH = img.height + topH + bottomH;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = totalW;
+  canvas.height = totalH;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return canvasDataUrl;
+
+  const drawBanner = (banner: BannerConfig, y: number, h: number) => {
+    ctx.fillStyle = banner.color;
+    ctx.fillRect(0, y, totalW, h);
+    if (banner.label) {
+      const fontSize = Math.round(banner.fontSize * scale);
+      ctx.fillStyle = banner.textColor;
+      ctx.font = `${fontSize}px ${banner.fontFamily}`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(banner.label, totalW / 2, y + h / 2);
+    }
+  };
+
+  // Draw top banner
+  if (hasTop) drawBanner(topBanner, 0, topH);
+
+  // Draw main image
+  ctx.drawImage(img, 0, topH);
+
+  // Draw bottom banner
+  if (hasBottom) drawBanner(bottomBanner, topH + img.height, bottomH);
+
+  return canvas.toDataURL('image/png');
+}
+
+/** Same as compositeBanners but returns a blob for JPEG. */
+async function compositeBannersBlob(canvasDataUrl: string, scale: number, format: 'png' | 'jpeg', quality?: number): Promise<Blob> {
+  const composited = await compositeBanners(canvasDataUrl, scale);
+  const response = await fetch(composited);
+  if (format === 'jpeg') {
+    // Re-encode as JPEG with quality
+    const img = new Image();
+    img.src = composited;
+    await new Promise<void>((r) => { img.onload = () => r(); });
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width;
+    canvas.height = img.height;
+    const ctx = canvas.getContext('2d')!;
+    ctx.drawImage(img, 0, 0);
+    return new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob((b) => b ? resolve(b) : reject(new Error('toBlob failed')), 'image/jpeg', quality ?? 0.92);
+    });
+  }
+  return response.blob();
 }
 
 /**
@@ -158,7 +226,7 @@ export function estimateFileSize(
 // ---------------------------------------------------------------------------
 
 export async function exportAsPng(options: PngExportOptions): Promise<void> {
-  const element = getReactFlowElement(true);
+  const element = getReactFlowElement();
   const { scale, transparentBackground, padding } = options;
   const restoreOverflow = unlockSwimlaneOverflow();
   const restoreCapture = unlockCaptureOverflow();
@@ -172,7 +240,9 @@ export async function exportAsPng(options: PngExportOptions): Promise<void> {
       },
     });
 
-    const response = await fetch(dataUrl);
+    // Composite banners above/below the main image
+    const finalUrl = transparentBackground ? dataUrl : await compositeBanners(dataUrl, scale);
+    const response = await fetch(finalUrl);
     const blob = await response.blob();
     saveAs(blob, getFilename('png'));
   } finally {
@@ -186,14 +256,14 @@ export async function exportAsPng(options: PngExportOptions): Promise<void> {
 // ---------------------------------------------------------------------------
 
 export async function exportAsJpg(options: JpgExportOptions): Promise<void> {
-  const element = getReactFlowElement(true);
+  const element = getReactFlowElement();
   const { quality, scale, backgroundColor, padding } = options;
   const restoreOverflow = unlockSwimlaneOverflow();
   const restoreCapture = unlockCaptureOverflow();
 
   try {
-    const dataUrl = await toJpeg(element, {
-      quality,
+    // Capture as PNG first (lossless), then composite banners, then re-encode as JPEG
+    const dataUrl = await toPng(element, {
       pixelRatio: scale,
       backgroundColor: backgroundColor || '#ffffff',
       style: {
@@ -201,8 +271,7 @@ export async function exportAsJpg(options: JpgExportOptions): Promise<void> {
       },
     });
 
-    const response = await fetch(dataUrl);
-    const blob = await response.blob();
+    const blob = await compositeBannersBlob(dataUrl, scale, 'jpeg', quality);
     saveAs(blob, getFilename('jpg'));
   } finally {
     restoreOverflow();
@@ -217,7 +286,7 @@ export async function exportAsJpg(options: JpgExportOptions): Promise<void> {
 export async function exportAsSvg(options: SvgExportOptions): Promise<void> {
   const { embedFonts, padding } = options;
 
-  const container = getReactFlowElement(true);
+  const container = getReactFlowElement();
   const restoreOverflow = unlockSwimlaneOverflow();
   const restoreCapture = unlockCaptureOverflow();
 

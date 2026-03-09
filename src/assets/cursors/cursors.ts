@@ -32,7 +32,7 @@ export const CURSOR_DRAG_ACTIVE = `url(${imgDrag}) 14 14, grabbing`;
 export const CURSOR_CROSSHAIR = `url(${imgCrosshair}) 14 14, crosshair`;
 
 /** Open hand — hover over draggable elements (nodes, palette items). */
-export const CURSOR_OPEN_HAND = `url(${imgOpenHand}) 11 11, grab`;
+export const CURSOR_OPEN_HAND = `url(${imgOpenHand}) 8 8, grab`;
 
 /** Elbow-move — drag-to-cycle connector type on edge midpoint (32×32). */
 export const CURSOR_ELBOW_MOVE = `url(${imgElbowMove}) 16 16, grab`;

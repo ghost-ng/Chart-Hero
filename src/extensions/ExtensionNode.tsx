@@ -8,6 +8,8 @@ import { diagramStyles } from '../styles/diagramStyles';
 import { resolveNodeStyle } from '../utils/themeResolver';
 import { recolorSvg } from './recolorSvg';
 import { DependencyBadge } from '../components/Dependencies';
+import { StatusBadge } from '../components/Canvas/GenericShapeNode';
+import { getStatusIndicators } from '../store/flowStore';
 import chroma from 'chroma-js';
 
 // ---------------------------------------------------------------------------
@@ -382,6 +384,33 @@ const ExtensionNode: React.FC<NodeProps> = ({ id, data, selected }) => {
 
       {/* Dependency badges overlay */}
       <DependencyBadge nodeId={id} />
+
+      {/* Status puck badges */}
+      {(() => {
+        const pucks = getStatusIndicators(nodeData);
+        const positionCounters: Record<string, number> = {};
+        return pucks.map((puck) => {
+          const pos = puck.position ?? 'top-right';
+          const idx = positionCounters[pos] ?? 0;
+          positionCounters[pos] = idx + 1;
+          return (
+            <StatusBadge
+              key={puck.id}
+              statusIndicator={puck}
+              nodeId={id}
+              puckId={puck.id!}
+              indexInGroup={idx}
+              shape="rectangle"
+              onUpdatePosition={(newPos) => {
+                useFlowStore.getState().updateStatusPuck(id, puck.id!, { position: newPos as any });
+              }}
+              onUpdateSize={(newSize) => {
+                useFlowStore.getState().updateStatusPuck(id, puck.id!, { size: newSize });
+              }}
+            />
+          );
+        });
+      })()}
 
       {/* Label above SVG */}
       {labelPosition === 'above' && labelEl(false)}

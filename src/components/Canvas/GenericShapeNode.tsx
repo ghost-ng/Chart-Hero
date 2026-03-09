@@ -282,7 +282,7 @@ function computePuckPosition(
   return style;
 }
 
-const StatusBadge: React.FC<StatusBadgeProps & { nodeId: string; puckId: string; indexInGroup: number; onUpdatePosition?: (position: string) => void; onUpdateSize?: (size: number) => void }> = ({ statusIndicator, nodeId, puckId, shape, indexInGroup, onUpdatePosition, onUpdateSize }) => {
+export const StatusBadge: React.FC<StatusBadgeProps & { nodeId: string; puckId: string; indexInGroup: number; onUpdatePosition?: (position: string) => void; onUpdateSize?: (size: number) => void }> = ({ statusIndicator, nodeId, puckId, shape, indexInGroup, onUpdatePosition, onUpdateSize }) => {
   const isSelected = useUIStore((s) => s.selectedPuckIds.includes(puckId));
   const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number } | null>(null);
   const puckMenuRef = useRef<HTMLDivElement>(null);

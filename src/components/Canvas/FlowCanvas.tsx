@@ -1608,8 +1608,8 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
     <div ref={reactFlowWrapper} data-charthero-canvas className={`w-full h-full flex flex-col ${presentationMode ? 'presentation-mode' : ''}`} style={{ backgroundColor: resolveCanvasBackground(canvasColorOverride, darkMode, activeStyleId ? diagramStyles[activeStyleId] ?? null : null) }}>
       {/* Capture area — wraps banners + canvas for export capture (toPng targets this) */}
       <div data-charthero-capture-area className="flex-1 min-h-0 flex flex-col" style={{ isolation: 'isolate' }}>
-      {/* Top banner (hidden in presentation mode — toolbar must be on top) */}
-      {topBanner.enabled && !presentationMode && <BannerBar position="top" config={topBanner} />}
+      {/* Top banner */}
+      {topBanner.enabled && <BannerBar position="top" config={topBanner} />}
 
       {/* Canvas area — viewport calculations and swimlane siblings live here */}
       <div data-charthero-canvas-area className="flex-1 min-h-0 relative" onContextMenu={presentationMode ? (e) => e.preventDefault() : onWrapperContextMenu} onWheel={presentationMode ? undefined : onWheelHandler} style={{ cursor: formatPainterActive ? FORMAT_PAINTER_CURSOR : undefined, isolation: 'isolate' }}>
@@ -1934,7 +1934,7 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
       </div>{/* end canvas-area */}
 
       {/* Bottom banner (hidden in presentation mode) */}
-      {bottomBanner.enabled && !presentationMode && <BannerBar position="bottom" config={bottomBanner} />}
+      {bottomBanner.enabled && <BannerBar position="bottom" config={bottomBanner} />}
 
       </div>{/* end capture-area */}
 

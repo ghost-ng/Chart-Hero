@@ -8,6 +8,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useBannerStore, type BannerConfig } from '../../store/bannerStore';
 import { useStyleStore } from '../../store/styleStore';
+import { useUIStore } from '../../store/uiStore';
 
 // ---------------------------------------------------------------------------
 // Font options (subset for banner context menu)
@@ -259,6 +260,7 @@ export interface BannerBarProps {
 
 export const BannerBar: React.FC<BannerBarProps> = ({ position, config }) => {
   const darkMode = useStyleStore((s) => s.darkMode);
+  const presentationMode = useUIStore((s) => s.presentationMode);
   const update = useBannerStore((s) =>
     position === 'top' ? s.updateTopBanner : s.updateBottomBanner,
   );
@@ -311,7 +313,7 @@ export const BannerBar: React.FC<BannerBarProps> = ({ position, config }) => {
   return (
     <>
       <div
-        onContextMenu={handleContextMenu}
+        onContextMenu={presentationMode ? undefined : handleContextMenu}
         style={{
           height: config.height,
           minHeight: MIN_HEIGHT,
@@ -329,7 +331,7 @@ export const BannerBar: React.FC<BannerBarProps> = ({ position, config }) => {
         )}
 
         {/* Resize handle -- sits at the inner edge of the banner (bottom for top, top for bottom) */}
-        <div
+        {!presentationMode && <div
           data-export-ignore
           onMouseDown={handleResizeStart}
           style={{
@@ -354,11 +356,11 @@ export const BannerBar: React.FC<BannerBarProps> = ({ position, config }) => {
               ...(position === 'top' ? { bottom: 0 } : { top: 0 }),
             }}
           />
-        </div>
+        </div>}
       </div>
 
       {/* Context menu (portal-like, fixed positioned) */}
-      {contextMenu && (
+      {!presentationMode && contextMenu && (
         <BannerContextMenu
           x={contextMenu.x}
           y={contextMenu.y}

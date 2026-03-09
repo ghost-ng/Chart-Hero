@@ -109,6 +109,13 @@ const shapes: ShapeDefinition[] = [
       </>,
     ),
   },
+  {
+    type: 'group',
+    label: 'Group',
+    icon: mkIcon(
+      <rect x="3" y="5" width="26" height="22" rx="3" fill="none" stroke="currentColor" strokeWidth="1.5" strokeDasharray="4 2" />,
+    ),
+  },
 ];
 
 // ---------------------------------------------------------------------------
@@ -647,25 +654,6 @@ const ShapePalette: React.FC = () => {
 
               {/* Containers section separator */}
               <div className="w-full border-t border-border dark:border-dk-border my-1" />
-
-              <div
-                draggable
-                onDragStart={(e) => {
-                  e.dataTransfer.setData('application/charthero-shape', 'group');
-                  e.dataTransfer.effectAllowed = 'move';
-                }}
-                data-tooltip-right="Group"
-                style={{ cursor: CURSOR_OPEN_HAND }}
-                className="relative flex items-center justify-center w-10 h-10 shrink-0 rounded-lg
-                           transition-all duration-100 group
-                           hover:bg-primary/10 hover:scale-105 active:scale-95"
-              >
-                <div className="text-text-muted group-hover:text-primary transition-colors">
-                  <svg width="28" height="28" viewBox="0 0 40 32" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0">
-                    <rect x="1" y="1" width="38" height="30" rx="4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeDasharray="4 2" />
-                  </svg>
-                </div>
-              </div>
 
               {/* Swimlanes — drag to create new container */}
               <div
