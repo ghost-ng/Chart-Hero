@@ -134,9 +134,11 @@ const CustomStraightEdge: React.FC<EdgeProps> = ({
           <EdgeReconnectIndicator cx={sourceX} cy={sourceY} position={sourcePosition} color={strokeColor} />
           <EdgeReconnectIndicator cx={targetX} cy={targetY} position={targetPosition} color={strokeColor} />
           {/* Waypoint handles */}
-          {waypoints?.map((wp, i) => (
-            <WaypointHandle key={i} edgeId={id} index={i} cx={wp.x} cy={wp.y} color={strokeColor} />
-          ))}
+          {waypoints?.map((wp, i) => {
+            const prev = i === 0 ? { x: sourceX, y: sourceY } : waypoints[i - 1];
+            const next = i === waypoints.length - 1 ? { x: targetX, y: targetY } : waypoints[i + 1];
+            return <WaypointHandle key={i} edgeId={id} index={i} cx={wp.x} cy={wp.y} color={strokeColor} prevPoint={prev} nextPoint={next} />;
+          })}
         </>
       )}
 

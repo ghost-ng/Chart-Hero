@@ -3,7 +3,7 @@
 // ---------------------------------------------------------------------------
 
 import React, { useCallback, useState, useEffect } from 'react';
-import { Check, ChevronDown, ChevronRight, ClipboardPaste, Copy } from 'lucide-react';
+import { Check, ChevronDown, ChevronRight, Copy } from 'lucide-react';
 import { useFlowStore, type FlowEdgeData } from '../../store/flowStore';
 
 // ---------------------------------------------------------------------------
@@ -63,62 +63,6 @@ const CopyHexButton: React.FC<{ value: string }> = ({ value }) => {
   );
 };
 
-// ---------------------------------------------------------------------------
-// PasteHexButton — paste hex color from clipboard (validates before applying)
-// ---------------------------------------------------------------------------
-
-/** Match #rgb, #rrggbb, or #rrggbbaa; also bare hex without # */
-const normalizeHex = (raw: string): string | null => {
-  let t = raw.trim();
-  if (t.startsWith('#')) t = t.slice(1);
-  if (/^[0-9a-fA-F]{3,4}$/.test(t) || /^[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/.test(t)) {
-    return `#${t.toLowerCase()}`;
-  }
-  return null;
-};
-
-const PasteHexButton: React.FC<{ onPaste: (hex: string) => void }> = ({ onPaste }) => {
-  const [status, setStatus] = React.useState<'idle' | 'ok' | 'bad' | 'denied'>('idle');
-  return (
-    <button
-      className={`p-1 rounded hover:bg-slate-100 dark:hover:bg-dk-hover transition-colors cursor-pointer ${
-        status === 'ok' ? 'text-green-500' : status === 'bad' || status === 'denied' ? 'text-red-400' : 'text-slate-400 hover:text-slate-600 dark:text-dk-muted dark:hover:text-dk-text'
-      }`}
-      onClick={async () => {
-        try {
-          if (navigator.permissions) {
-            const perm = await navigator.permissions.query({ name: 'clipboard-read' as PermissionName });
-            if (perm.state === 'denied') {
-              setStatus('denied');
-              setTimeout(() => setStatus('idle'), 2000);
-              return;
-            }
-          }
-          const text = await navigator.clipboard.readText();
-          const hex = normalizeHex(text);
-          if (hex) {
-            onPaste(hex);
-            setStatus('ok');
-          } else {
-            setStatus('bad');
-          }
-          setTimeout(() => setStatus('idle'), 1200);
-        } catch {
-          setStatus('denied');
-          setTimeout(() => setStatus('idle'), 2000);
-        }
-      }}
-      data-tooltip-left={
-        status === 'ok' ? 'Pasted!'
-          : status === 'denied' ? 'Allow clipboard access in browser'
-          : status === 'bad' ? 'Not a hex color'
-          : 'Paste hex'
-      }
-    >
-      {status === 'ok' ? <Check size={12} /> : <ClipboardPaste size={12} />}
-    </button>
-  );
-};
 
 // ---------------------------------------------------------------------------
 // Edge type options
@@ -342,13 +286,18 @@ const EdgePropertiesTab: React.FC<EdgePropertiesTabProps> = React.memo(
     );
 
     // Update the edge type (which is on the edge itself, not on edge.data)
+    // When switching to "straight", clear waypoints so the edge is a direct line.
+    const updateEdgeData = useFlowStore.getState().updateEdgeData;
     const updateType = useCallback(
       (type: string) => {
         for (const id of getTargetIds()) {
           updateEdgeAction(id, { type });
+          if (type === 'straight') {
+            updateEdgeData(id, { waypoints: undefined });
+          }
         }
       },
-      [getTargetIds, updateEdgeAction],
+      [getTargetIds, updateEdgeAction, updateEdgeData],
     );
 
     // Update markerEnd on the edge itself
@@ -428,18 +377,17 @@ const EdgePropertiesTab: React.FC<EdgePropertiesTabProps> = React.memo(
                   type="color"
                   value={strokeColor}
                   onChange={(e) => update({ color: e.target.value })}
-                  className="w-8 h-8 rounded border border-border cursor-pointer"
+                  className="w-8 h-8 shrink-0 rounded border border-border cursor-pointer"
                 />
                 <input
                   type="text"
                   value={strokeColor}
                   onChange={(e) => update({ color: e.target.value })}
-                  className="flex-1 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white
+                  className="flex-1 min-w-0 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white
                              dark:bg-dk-panel dark:border-dk-border dark:text-dk-text
                              focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
                 />
                 <CopyHexButton value={strokeColor} />
-                <PasteHexButton onPaste={(hex) => update({ color: hex })} />
               </div>
             </Field>
 
@@ -585,18 +533,17 @@ const EdgePropertiesTab: React.FC<EdgePropertiesTabProps> = React.memo(
                     type="color"
                     value={(edgeData as Record<string, unknown>).labelColor as string || '#475569'}
                     onChange={(e) => update({ labelColor: e.target.value } as Partial<FlowEdgeData>)}
-                    className="w-8 h-8 rounded border border-border cursor-pointer"
+                    className="w-8 h-8 shrink-0 rounded border border-border cursor-pointer"
                   />
                   <input
                     type="text"
                     value={(edgeData as Record<string, unknown>).labelColor as string || '#475569'}
                     onChange={(e) => update({ labelColor: e.target.value } as Partial<FlowEdgeData>)}
-                    className="flex-1 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white
+                    className="flex-1 min-w-0 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white
                                dark:bg-dk-panel dark:border-dk-border dark:text-dk-text
                                focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
                   />
                   <CopyHexButton value={(edgeData as Record<string, unknown>).labelColor as string || '#475569'} />
-                  <PasteHexButton onPaste={(hex) => update({ labelColor: hex } as Partial<FlowEdgeData>)} />
                 </div>
               </Field>
             )}
@@ -629,18 +576,17 @@ const EdgePropertiesTab: React.FC<EdgePropertiesTabProps> = React.memo(
                     type="color"
                     value={(edgeData as Record<string, unknown>).labelBgColor as string || '#ffffff'}
                     onChange={(e) => update({ labelBgColor: e.target.value } as Partial<FlowEdgeData>)}
-                    className="w-8 h-8 rounded border border-border cursor-pointer"
+                    className="w-8 h-8 shrink-0 rounded border border-border cursor-pointer"
                   />
                   <input
                     type="text"
                     value={(edgeData as Record<string, unknown>).labelBgColor as string || '#ffffff'}
                     onChange={(e) => update({ labelBgColor: e.target.value } as Partial<FlowEdgeData>)}
-                    className="flex-1 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white
+                    className="flex-1 min-w-0 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white
                                dark:bg-dk-panel dark:border-dk-border dark:text-dk-text
                                focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
                   />
                   <CopyHexButton value={(edgeData as Record<string, unknown>).labelBgColor as string || '#ffffff'} />
-                  <PasteHexButton onPaste={(hex) => update({ labelBgColor: hex } as Partial<FlowEdgeData>)} />
                 </div>
               </Field>
             )}

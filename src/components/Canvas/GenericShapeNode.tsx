@@ -677,6 +677,7 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const labelRef = useRef<HTMLDivElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const resizeStartRef = useRef<{ width: number; height: number; borderWidth: number; pucks: { id: string; size: number; borderWidth: number }[] } | null>(null);
 
   const shape = nodeData.shape || 'rectangle';
   const isIconOnly = !!nodeData.iconOnly;
@@ -1028,8 +1029,35 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
         keepAspectRatio={isCircle}
         lineStyle={{ borderColor: selectionColor, borderWidth: selectionThickness * 0.5 }}
         handleStyle={{ width: 12, height: 12, borderRadius: 6, backgroundColor: 'white', border: `${Math.max(1.5, selectionThickness)}px solid ${selectionColor}`, zIndex: 50 }}
+        onResizeStart={() => {
+          // Snapshot initial dimensions + puck/border sizes for proportional scaling
+          resizeStartRef.current = {
+            width,
+            height,
+            borderWidth: borderW,
+            pucks: getStatusIndicators(nodeData).map(p => ({ id: p.id!, size: p.size ?? 12, borderWidth: p.borderWidth ?? 1 })),
+          };
+        }}
         onResize={(_event, params) => {
           updateNodeData(id, { width: params.width, height: params.height });
+
+          // Scale puck sizes and border width proportionally with the node
+          const start = resizeStartRef.current;
+          if (start) {
+            const scale = Math.max(params.width / start.width, params.height / start.height);
+            // Scale node border width
+            const newBorderW = Math.max(1, Math.round(start.borderWidth * scale));
+            if (newBorderW !== borderW) {
+              updateNodeData(id, { borderWidth: newBorderW } as Partial<FlowNodeData>);
+            }
+            // Scale each puck's size and border width
+            for (const sp of start.pucks) {
+              const newSize = Math.max(4, Math.round(sp.size * scale));
+              const newPBW = Math.max(1, Math.round(sp.borderWidth * scale));
+              useFlowStore.getState().updateStatusPuck(id, sp.id, { size: newSize, borderWidth: newPBW });
+            }
+          }
+
           // Propagate resize to all other selected nodes
           const { selectedNodes } = useFlowStore.getState();
           if (selectedNodes.length > 1) {
@@ -1045,6 +1073,7 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
           }));
         }}
         onResizeEnd={() => {
+          resizeStartRef.current = null;
           window.dispatchEvent(new CustomEvent('charthero:node-resize-end'));
         }}
       />
@@ -1272,6 +1301,7 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
                 height="100%"
                 viewBox={arrowViewBox}
                 preserveAspectRatio="none"
+                overflow="visible"
                 className="absolute inset-0 pointer-events-none"
               >
                 <ArrowSvg
@@ -1289,6 +1319,7 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
                 height="100%"
                 viewBox="0 0 160 80"
                 preserveAspectRatio="none"
+                overflow="visible"
                 className="absolute inset-0 pointer-events-none"
               >
                 <ShapeSvg
@@ -1308,6 +1339,7 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
                 height="100%"
                 viewBox="0 0 100 100"
                 preserveAspectRatio="none"
+                overflow="visible"
                 className="absolute inset-0 pointer-events-none"
               >
                 <polygon

@@ -24,7 +24,7 @@ import {
   Type,
   Palette,
   RotateCcw,
-  ClipboardPaste,
+
   icons,
 } from 'lucide-react';
 
@@ -125,65 +125,6 @@ const CopyHexButton: React.FC<{ value: string }> = ({ value }) => {
   );
 };
 
-// ---------------------------------------------------------------------------
-// PasteHexButton — paste hex color from clipboard (validates before applying)
-// ---------------------------------------------------------------------------
-
-/** Match #rgb, #rrggbb, or #rrggbbaa; also bare hex without # */
-const normalizeHex = (raw: string): string | null => {
-  let t = raw.trim();
-  // Strip leading # if present
-  if (t.startsWith('#')) t = t.slice(1);
-  // Accept 3, 4, 6, or 8 hex digits
-  if (/^[0-9a-fA-F]{3,4}$/.test(t) || /^[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/.test(t)) {
-    return `#${t.toLowerCase()}`;
-  }
-  return null;
-};
-
-const PasteHexButton: React.FC<{ onPaste: (hex: string) => void }> = ({ onPaste }) => {
-  const [status, setStatus] = useState<'idle' | 'ok' | 'bad' | 'denied'>('idle');
-  return (
-    <button
-      className={`p-1 rounded hover:bg-slate-100 dark:hover:bg-dk-hover transition-colors cursor-pointer ${
-        status === 'ok' ? 'text-green-500' : status === 'bad' || status === 'denied' ? 'text-red-400' : 'text-slate-400 hover:text-slate-600 dark:text-dk-muted dark:hover:text-dk-text'
-      }`}
-      onClick={async () => {
-        try {
-          // Query permission first — triggers browser prompt if needed
-          if (navigator.permissions) {
-            const perm = await navigator.permissions.query({ name: 'clipboard-read' as PermissionName });
-            if (perm.state === 'denied') {
-              setStatus('denied');
-              setTimeout(() => setStatus('idle'), 2000);
-              return;
-            }
-          }
-          const text = await navigator.clipboard.readText();
-          const hex = normalizeHex(text);
-          if (hex) {
-            onPaste(hex);
-            setStatus('ok');
-          } else {
-            setStatus('bad');
-          }
-          setTimeout(() => setStatus('idle'), 1200);
-        } catch {
-          setStatus('denied');
-          setTimeout(() => setStatus('idle'), 2000);
-        }
-      }}
-      data-tooltip-left={
-        status === 'ok' ? 'Pasted!'
-          : status === 'denied' ? 'Allow clipboard access in browser'
-          : status === 'bad' ? 'Not a hex color'
-          : 'Paste hex'
-      }
-    >
-      {status === 'ok' ? <Check size={12} /> : <ClipboardPaste size={12} />}
-    </button>
-  );
-};
 
 // ---------------------------------------------------------------------------
 // Shape options for the shape picker dropdown
@@ -485,11 +426,10 @@ const StatusPucksSection: React.FC<StatusPucksSectionProps> = ({ nodeId, data, c
                     type="text"
                     value={selectedPuck.color || '#94a3b8'}
                     onChange={(e) => handleUpdatePuck({ color: e.target.value })}
-                    className="flex-1 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white dark:bg-dk-input dark:text-dk-text dark:border-dk-border
+                    className="flex-1 min-w-0 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white dark:bg-dk-input dark:text-dk-text dark:border-dk-border
                                focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
                   />
                   <CopyHexButton value={selectedPuck.color || '#94a3b8'} />
-                  <PasteHexButton onPaste={(hex) => handleUpdatePuck({ color: hex })} />
                 </div>
               </Field>
 
@@ -499,7 +439,7 @@ const StatusPucksSection: React.FC<StatusPucksSectionProps> = ({ nodeId, data, c
                   <input
                     type="range"
                     min={8}
-                    max={20}
+                    max={60}
                     step={1}
                     value={selectedPuck.size || 12}
                     onChange={(e) => handleUpdatePuck({ size: Number(e.target.value) })}
@@ -581,11 +521,10 @@ const StatusPucksSection: React.FC<StatusPucksSectionProps> = ({ nodeId, data, c
                     type="text"
                     value={selectedPuck.borderColor || '#000000'}
                     onChange={(e) => handleUpdatePuck({ borderColor: e.target.value })}
-                    className="flex-1 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white dark:bg-dk-input dark:text-dk-text dark:border-dk-border
+                    className="flex-1 min-w-0 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white dark:bg-dk-input dark:text-dk-text dark:border-dk-border
                                focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
                   />
                   <CopyHexButton value={selectedPuck.borderColor || '#000000'} />
-                  <PasteHexButton onPaste={(hex) => handleUpdatePuck({ borderColor: hex })} />
                 </div>
               </Field>
 
@@ -927,11 +866,10 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, no
                 type="text"
                 value={fillColor}
                 onChange={(e) => update({ color: e.target.value })}
-                className="flex-1 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white dark:bg-dk-input dark:text-dk-text dark:border-dk-border
+                className="flex-1 min-w-0 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white dark:bg-dk-input dark:text-dk-text dark:border-dk-border
                            focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
               />
               <CopyHexButton value={fillColor} />
-              <PasteHexButton onPaste={(hex) => update({ color: hex })} />
               <ResetIcon
                 visible={anyHasColorOverride}
                 onReset={() => update({ color: undefined })}
@@ -974,11 +912,10 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, no
                 type="text"
                 value={borderColor}
                 onChange={(e) => update({ borderColor: e.target.value })}
-                className="flex-1 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white dark:bg-dk-input dark:text-dk-text dark:border-dk-border
+                className="flex-1 min-w-0 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white dark:bg-dk-input dark:text-dk-text dark:border-dk-border
                            focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
               />
               <CopyHexButton value={borderColor} />
-              <PasteHexButton onPaste={(hex) => update({ borderColor: hex })} />
               <ResetIcon
                 visible={anyHasBorderColorOverride}
                 onReset={() => update({ borderColor: undefined })}
@@ -1086,11 +1023,10 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, no
                 type="text"
                 value={textColor}
                 onChange={(e) => update({ textColor: e.target.value })}
-                className="flex-1 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white dark:bg-dk-input dark:text-dk-text dark:border-dk-border
+                className="flex-1 min-w-0 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white dark:bg-dk-input dark:text-dk-text dark:border-dk-border
                            focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
               />
               <CopyHexButton value={textColor} />
-              <PasteHexButton onPaste={(hex) => update({ textColor: hex })} />
               <ResetIcon
                 visible={!!activeStyleId && !!data.textColor}
                 onReset={() => update({ textColor: undefined })}
@@ -1328,7 +1264,6 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, no
                                focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
                   />
                   <CopyHexButton value={data.iconColor || textColor} />
-                  <PasteHexButton onPaste={(hex) => update({ iconColor: hex })} />
                   <ResetIcon
                     visible={!!data.iconColor}
                     onReset={() => update({ iconColor: undefined })}
@@ -1354,7 +1289,6 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, no
                                focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
                   />
                   <CopyHexButton value={data.iconBgColor || ''} />
-                  <PasteHexButton onPaste={(hex) => update({ iconBgColor: hex })} />
                   <ResetIcon
                     visible={!!data.iconBgColor}
                     onReset={() => update({ iconBgColor: undefined })}
@@ -1380,7 +1314,6 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, no
                                focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
                   />
                   <CopyHexButton value={data.iconBorderColor || ''} />
-                  <PasteHexButton onPaste={(hex) => update({ iconBorderColor: hex })} />
                   <ResetIcon
                     visible={!!data.iconBorderColor}
                     onReset={() => update({ iconBorderColor: undefined })}
@@ -2097,7 +2030,6 @@ const SwimlanePanel: React.FC = React.memo(() => {
               />
               <span className="flex-1 text-xs text-text-muted">{config.titleColor ?? 'Auto'}</span>
               <CopyHexButton value={config.titleColor ?? '#0f172a'} />
-              <PasteHexButton onPaste={(hex) => updateTitleConfig({ titleColor: hex })} />
             </div>
           </Field>
           <Field label="Title Font">
@@ -2334,7 +2266,6 @@ const SwimlanePanel: React.FC = React.memo(() => {
                   ))}
                 </select>
                 <CopyHexButton value={config.containerBorder?.color ?? '#94a3b8'} />
-                <PasteHexButton onPaste={(hex) => updateContainerBorder({ color: hex })} />
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-[10px] text-text-muted w-10">Width</span>
@@ -2383,7 +2314,6 @@ const SwimlanePanel: React.FC = React.memo(() => {
                   ))}
                 </select>
                 <CopyHexButton value={config.dividerStyle?.color || '#94a3b8'} />
-                <PasteHexButton onPaste={(hex) => updateDividerStyle({ color: hex })} />
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-[10px] text-text-muted w-10">Width</span>
@@ -2536,11 +2466,10 @@ const BulkPuckEditor: React.FC = () => {
             type="text"
             value={representativePuck.color || '#94a3b8'}
             onChange={(e) => handleUpdate({ color: e.target.value })}
-            className="flex-1 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white dark:bg-dk-input dark:text-dk-text dark:border-dk-border
+            className="flex-1 min-w-0 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white dark:bg-dk-input dark:text-dk-text dark:border-dk-border
                        focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
           />
           <CopyHexButton value={representativePuck.color || '#94a3b8'} />
-          <PasteHexButton onPaste={(hex) => handleUpdate({ color: hex })} />
         </div>
       </Field>
 
@@ -2550,7 +2479,7 @@ const BulkPuckEditor: React.FC = () => {
           <input
             type="range"
             min={8}
-            max={20}
+            max={60}
             step={1}
             value={representativePuck.size || 12}
             onChange={(e) => handleUpdate({ size: Number(e.target.value) })}
@@ -2630,11 +2559,10 @@ const BulkPuckEditor: React.FC = () => {
             type="text"
             value={representativePuck.borderColor || '#000000'}
             onChange={(e) => handleUpdate({ borderColor: e.target.value })}
-            className="flex-1 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white dark:bg-dk-input dark:text-dk-text dark:border-dk-border
+            className="flex-1 min-w-0 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white dark:bg-dk-input dark:text-dk-text dark:border-dk-border
                        focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
           />
           <CopyHexButton value={representativePuck.borderColor || '#000000'} />
-          <PasteHexButton onPaste={(hex) => handleUpdate({ borderColor: hex })} />
         </div>
       </Field>
 

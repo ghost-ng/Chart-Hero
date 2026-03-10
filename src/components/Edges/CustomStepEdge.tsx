@@ -176,9 +176,9 @@ const CustomStepEdge: React.FC<EdgeProps> = ({
                 {/* Elbow corner handles */}
                 {wps.map((wp, i) =>
                   isAuto ? (
-                    <WaypointHandle key={`auto-${i}`} edgeId={id} index={i} cx={wp.x} cy={wp.y} color={strokeColor} isAutoElbow autoElbows={autoElbowsRef.current} />
+                    <WaypointHandle key={`auto-${i}`} edgeId={id} index={i} cx={wp.x} cy={wp.y} color={strokeColor} isAutoElbow autoElbows={autoElbowsRef.current} prevPoint={allPts[i]} nextPoint={allPts[i + 2]} />
                   ) : (
-                    <WaypointHandle key={i} edgeId={id} index={i} cx={wp.x} cy={wp.y} color={strokeColor} />
+                    <WaypointHandle key={i} edgeId={id} index={i} cx={wp.x} cy={wp.y} color={strokeColor} prevPoint={allPts[i]} nextPoint={allPts[i + 2]} />
                   )
                 )}
                 {/* Segment arm handles (midpoint of each segment between consecutive waypoints) */}
