@@ -34,6 +34,7 @@ export function recolorSvg(
   root.setAttribute('preserveAspectRatio', 'none');
   root.setAttribute('width', '100%');
   root.setAttribute('height', '100%');
+  root.setAttribute('overflow', 'hidden');
 
   const serializer = new XMLSerializer();
   return serializer.serializeToString(root);

@@ -279,11 +279,8 @@ const ExtensionNode: React.FC<NodeProps> = ({ id, data, selected }) => {
     return recolorSvg(nodeData.svgContent, effectiveFill, effectiveBorder);
   }, [nodeData.svgContent, effectiveFill, effectiveBorder]);
 
-  // ---- Selection shadow ----
-  const selectionShadow = isSelected
-    ? `0 0 0 ${selectionThickness + 0.5}px ${selectionColor}, 0 0 8px 2px ${selectionColor}40`
-    : '';
-  const boxShadow = selectionShadow || 'none';
+  // Selection is rendered via a dedicated outline div — no box-shadow needed.
+  const boxShadow = 'none';
 
   // ---- Wrapper transform (rotation) ----
   const wrapperTransformParts: string[] = [];
