@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { Handle, Position, NodeResizer, type NodeProps } from '@xyflow/react';
+import { Handle, Position, useReactFlow, type NodeProps } from '@xyflow/react';
 import { icons } from 'lucide-react';
 import { useFlowStore, type FlowNodeData, type StatusIndicator, getStatusIndicators } from '../../store/flowStore';
 import { useUIStore } from '../../store/uiStore';
@@ -11,7 +11,12 @@ import chroma from 'chroma-js';
 import { resolveNodeStyle } from '../../utils/themeResolver';
 import { useStyleStore } from '../../store/styleStore';
 import { diagramStyles } from '../../styles/diagramStyles';
-import { CURSOR_SELECT } from '../../assets/cursors/cursors';
+import {
+  CURSOR_SELECT,
+  CURSOR_RESIZE_WIDTH,
+  CURSOR_RESIZE_HEIGHT,
+  CURSOR_RESIZE_CORNER,
+} from '../../assets/cursors/cursors';
 import { ColorSwatchSidebar } from '../ContextMenu/menuUtils';
 import { resolveActivePalette } from '../../styles/palettes';
 
@@ -653,9 +658,14 @@ export const StatusBadge: React.FC<StatusBadgeProps & { nodeId: string; puckId: 
 // Component
 // ---------------------------------------------------------------------------
 
+const MIN_NODE_WIDTH = 40;
+const MIN_NODE_HEIGHT = 30;
+
 const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const nodeData = data as FlowNodeData;
   const updateNodeData = useFlowStore((s) => s.updateNodeData);
+  const updateNodePosition = useFlowStore((s) => s.updateNodePosition);
+  const reactFlowInstance = useReactFlow();
   const activeStyleId = useStyleStore((s) => s.activeStyleId);
   const activeStyle = activeStyleId ? diagramStyles[activeStyleId] ?? null : null;
   const isEditingNode = useUIStore((s) => s.isEditingNode);
@@ -873,6 +883,121 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   // User-configurable corner radius (overrides shape defaults)
   const userBorderRadius = nodeData.borderRadius;
 
+  // ---- Custom resize handler (replaces NodeResizer) ----
+  const handleResizeStart = useCallback(
+    (e: React.MouseEvent, edges: ('left' | 'right' | 'top' | 'bottom')[]) => {
+      e.stopPropagation();
+      e.preventDefault();
+
+      const node = reactFlowInstance.getNode(id);
+      if (!node) return;
+
+      const startX = e.clientX;
+      const startY = e.clientY;
+      const startW = nodeData.width || width;
+      const startH = nodeData.height || height;
+      const startPos = { x: node.position.x, y: node.position.y };
+      const zoom = reactFlowInstance.getZoom();
+      const aspectRatio = startW / startH;
+
+      // Snapshot for proportional puck/border scaling
+      resizeStartRef.current = {
+        width: startW,
+        height: startH,
+        borderWidth: borderW,
+        pucks: getStatusIndicators(nodeData).map(p => ({ id: p.id!, size: p.size ?? 12, borderWidth: p.borderWidth ?? 1 })),
+      };
+
+      const onMove = (me: MouseEvent) => {
+        const deltaX = (me.clientX - startX) / zoom;
+        const deltaY = (me.clientY - startY) / zoom;
+        const shiftHeld = me.shiftKey;
+
+        let newW = startW;
+        let newH = startH;
+        let newX = startPos.x;
+        let newY = startPos.y;
+
+        for (const edge of edges) {
+          if (edge === 'right') newW = Math.max(MIN_NODE_WIDTH, startW + deltaX);
+          else if (edge === 'left') {
+            newW = Math.max(MIN_NODE_WIDTH, startW - deltaX);
+            newX = startPos.x + (startW - newW);
+          } else if (edge === 'bottom') newH = Math.max(MIN_NODE_HEIGHT, startH + deltaY);
+          else if (edge === 'top') {
+            newH = Math.max(MIN_NODE_HEIGHT, startH - deltaY);
+            newY = startPos.y + (startH - newH);
+          }
+        }
+
+        // Shift = maintain aspect ratio; circles always maintain it
+        if (shiftHeld || isCircle) {
+          if (edges.length === 1) {
+            // Single edge: derive the other dimension from aspect ratio
+            if (edges[0] === 'left' || edges[0] === 'right') {
+              newH = newW / aspectRatio;
+            } else {
+              newW = newH * aspectRatio;
+            }
+          } else {
+            // Corner: pick the dominant axis
+            const dw = Math.abs(newW - startW);
+            const dh = Math.abs(newH - startH);
+            if (dw >= dh) {
+              newH = newW / aspectRatio;
+            } else {
+              newW = newH * aspectRatio;
+            }
+            // Adjust position for top/left edges
+            if (edges.includes('left')) newX = startPos.x + (startW - newW);
+            if (edges.includes('top')) newY = startPos.y + (startH - newH);
+          }
+        }
+
+        updateNodeData(id, { width: newW, height: newH });
+        updateNodePosition(id, { x: newX, y: newY });
+
+        // Scale pucks/border proportionally
+        const start = resizeStartRef.current;
+        if (start) {
+          const scale = Math.max(newW / start.width, newH / start.height);
+          const newBW = Math.max(1, Math.round(start.borderWidth * scale));
+          if (newBW !== borderW) {
+            updateNodeData(id, { borderWidth: newBW } as Partial<FlowNodeData>);
+          }
+          for (const sp of start.pucks) {
+            const ns = Math.max(4, Math.round(sp.size * scale));
+            const nb = Math.max(1, Math.round(sp.borderWidth * scale));
+            useFlowStore.getState().updateStatusPuck(id, sp.id, { size: ns, borderWidth: nb });
+          }
+        }
+
+        // Propagate to other selected nodes
+        const { selectedNodes } = useFlowStore.getState();
+        if (selectedNodes.length > 1) {
+          for (const nid of selectedNodes) {
+            if (nid !== id) updateNodeData(nid, { width: newW, height: newH });
+          }
+        }
+
+        window.dispatchEvent(new CustomEvent('charthero:node-resize', {
+          detail: { nodeId: id, x: newX, y: newY, width: newW, height: newH },
+        }));
+      };
+
+      const onUp = () => {
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+        resizeStartRef.current = null;
+        window.dispatchEvent(new CustomEvent('charthero:node-resize-end'));
+      };
+
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    },
+    [id, nodeData.width, nodeData.height, width, height, borderW, isCircle, reactFlowInstance, updateNodeData, updateNodePosition, nodeData],
+  );
+
   // Build box-shadow layers
   // SVG-rendered shapes (parallelogram, hexagon, diamond, etc.) use SVG stroke
   // for selection — skip the rectangular box-shadow selection ring for those.
@@ -1022,79 +1147,44 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
 
   return (
     <div ref={wrapperRef} style={wrapperStyle} onDoubleClick={handleDoubleClick}>
-      <NodeResizer
-        isVisible={!!isSelected}
-        minWidth={40}
-        minHeight={30}
-        keepAspectRatio={isCircle}
-        lineStyle={{ borderColor: 'transparent', borderWidth: 0 }}
-        handleStyle={{ width: 16, height: 16, borderRadius: 8, backgroundColor: 'white', border: `${Math.max(1.5, selectionThickness)}px solid ${selectionColor}`, zIndex: 50 }}
-        onResizeStart={() => {
-          // Snapshot initial dimensions + puck/border sizes for proportional scaling
-          resizeStartRef.current = {
-            width,
-            height,
-            borderWidth: borderW,
-            pucks: getStatusIndicators(nodeData).map(p => ({ id: p.id!, size: p.size ?? 12, borderWidth: p.borderWidth ?? 1 })),
-          };
-        }}
-        onResize={(_event, params) => {
-          updateNodeData(id, { width: params.width, height: params.height });
-
-          // Scale puck sizes and border width proportionally with the node
-          const start = resizeStartRef.current;
-          if (start) {
-            const scale = Math.max(params.width / start.width, params.height / start.height);
-            // Scale node border width
-            const newBorderW = Math.max(1, Math.round(start.borderWidth * scale));
-            if (newBorderW !== borderW) {
-              updateNodeData(id, { borderWidth: newBorderW } as Partial<FlowNodeData>);
-            }
-            // Scale each puck's size and border width
-            for (const sp of start.pucks) {
-              const newSize = Math.max(4, Math.round(sp.size * scale));
-              const newPBW = Math.max(1, Math.round(sp.borderWidth * scale));
-              useFlowStore.getState().updateStatusPuck(id, sp.id, { size: newSize, borderWidth: newPBW });
-            }
-          }
-
-          // Propagate resize to all other selected nodes
-          const { selectedNodes } = useFlowStore.getState();
-          if (selectedNodes.length > 1) {
-            for (const nid of selectedNodes) {
-              if (nid !== id) {
-                updateNodeData(nid, { width: params.width, height: params.height });
-              }
-            }
-          }
-          // Notify FlowCanvas for alignment/distance guide computation
-          window.dispatchEvent(new CustomEvent('charthero:node-resize', {
-            detail: { nodeId: id, x: params.x, y: params.y, width: params.width, height: params.height },
-          }));
-        }}
-        onResizeEnd={() => {
-          resizeStartRef.current = null;
-          window.dispatchEvent(new CustomEvent('charthero:node-resize-end'));
-        }}
-      />
-
-      {/* Selection outline rendered OUTSIDE the node border */}
+      {/* Custom resize handles + selection outline — positioned outside the border */}
       {isSelected && (() => {
         const selBorderW = selectionThickness * 0.75;
         // borderW is rendered as box-shadow spread outside the bounding box,
         // so the outline must clear it: borderW + 1px gap + outline thickness
         const outset = borderW + 1 + selBorderW;
+        const handleSize = 14;
+        const handleHalf = handleSize / 2;
+        const handleBorder = `${Math.max(1.5, selectionThickness)}px solid ${selectionColor}`;
+        const handleBase: React.CSSProperties = {
+          position: 'absolute', backgroundColor: 'white', borderRadius: handleHalf,
+          width: handleSize, height: handleSize, border: handleBorder, zIndex: 50,
+        };
+        const br = noBox ? 4 : (userBorderRadius ?? (shapeStyles[shape] as Record<string, unknown>)?.borderRadius as number ?? 8) + borderW + 2;
+
         return (
-          <div
-            style={{
-              position: 'absolute',
-              inset: -outset,
-              border: `${selBorderW}px solid ${selectionColor}`,
-              borderRadius: noBox ? 4 : (userBorderRadius ?? (shapeStyles[shape] as Record<string, unknown>)?.borderRadius as number ?? 8) + borderW + 2,
-              pointerEvents: 'none',
-              zIndex: 40,
-            }}
-          />
+          <>
+            {/* Selection outline */}
+            <div
+              style={{
+                position: 'absolute', inset: -outset,
+                border: `${selBorderW}px solid ${selectionColor}`,
+                borderRadius: br, pointerEvents: 'none', zIndex: 40,
+              }}
+            />
+
+            {/* Edge handles — single axis, aligned to the selection outline */}
+            <div className="nodrag nopan" style={{ position: 'absolute', top: -outset - 4, left: outset, right: outset, height: 10, cursor: CURSOR_RESIZE_HEIGHT, zIndex: 45 }} onMouseDown={(e) => handleResizeStart(e, ['top'])} />
+            <div className="nodrag nopan" style={{ position: 'absolute', bottom: -outset - 4, left: outset, right: outset, height: 10, cursor: CURSOR_RESIZE_HEIGHT, zIndex: 45 }} onMouseDown={(e) => handleResizeStart(e, ['bottom'])} />
+            <div className="nodrag nopan" style={{ position: 'absolute', left: -outset - 4, top: outset, bottom: outset, width: 10, cursor: CURSOR_RESIZE_WIDTH, zIndex: 45 }} onMouseDown={(e) => handleResizeStart(e, ['left'])} />
+            <div className="nodrag nopan" style={{ position: 'absolute', right: -outset - 4, top: outset, bottom: outset, width: 10, cursor: CURSOR_RESIZE_WIDTH, zIndex: 45 }} onMouseDown={(e) => handleResizeStart(e, ['right'])} />
+
+            {/* Corner handles — both axes */}
+            <div className="nodrag nopan" style={{ ...handleBase, top: -outset - handleHalf, left: -outset - handleHalf, cursor: CURSOR_RESIZE_CORNER }} onMouseDown={(e) => handleResizeStart(e, ['top', 'left'])} />
+            <div className="nodrag nopan" style={{ ...handleBase, top: -outset - handleHalf, right: -outset - handleHalf, cursor: CURSOR_RESIZE_CORNER }} onMouseDown={(e) => handleResizeStart(e, ['top', 'right'])} />
+            <div className="nodrag nopan" style={{ ...handleBase, bottom: -outset - handleHalf, left: -outset - handleHalf, cursor: CURSOR_RESIZE_CORNER }} onMouseDown={(e) => handleResizeStart(e, ['bottom', 'left'])} />
+            <div className="nodrag nopan" style={{ ...handleBase, bottom: -outset - handleHalf, right: -outset - handleHalf, cursor: CURSOR_RESIZE_CORNER }} onMouseDown={(e) => handleResizeStart(e, ['bottom', 'right'])} />
+          </>
         );
       })()}
 
