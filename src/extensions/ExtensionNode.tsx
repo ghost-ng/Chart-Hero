@@ -15,6 +15,7 @@ import {
   CURSOR_RESIZE_WIDTH,
   CURSOR_RESIZE_HEIGHT,
   CURSOR_RESIZE_CORNER,
+  CURSOR_RESIZE_CORNER_NESW,
 } from '../assets/cursors/cursors';
 
 // ---------------------------------------------------------------------------
@@ -462,7 +463,7 @@ const ExtensionNode: React.FC<NodeProps> = ({ id, data, selected }) => {
             className="nodrag nopan"
             style={{
               position: 'absolute', top: -7, right: -7, width: 14, height: 14,
-              cursor: CURSOR_RESIZE_CORNER, zIndex: 50,
+              cursor: CURSOR_RESIZE_CORNER_NESW, zIndex: 50,
               backgroundColor: 'white', borderRadius: 7,
               border: `${Math.max(1.5, selectionThickness)}px solid ${selectionColor}`,
             }}
@@ -473,7 +474,7 @@ const ExtensionNode: React.FC<NodeProps> = ({ id, data, selected }) => {
             className="nodrag nopan"
             style={{
               position: 'absolute', bottom: -7, left: -7, width: 14, height: 14,
-              cursor: CURSOR_RESIZE_CORNER, zIndex: 50,
+              cursor: CURSOR_RESIZE_CORNER_NESW, zIndex: 50,
               backgroundColor: 'white', borderRadius: 7,
               border: `${Math.max(1.5, selectionThickness)}px solid ${selectionColor}`,
             }}

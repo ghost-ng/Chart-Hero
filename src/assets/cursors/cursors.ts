@@ -15,7 +15,8 @@ import imgOpenHand from './open_hand.png';
 import imgMove from './move_main.png';
 import imgResizeWidth from './resize_width.png';
 import imgResizeHeight from './resize_height.png';
-import imgResizeCorner from './resize_corner.png';
+import imgResizeCornerNWSE from './resize_corner_nw_se.png';
+import imgResizeCornerNESW from './resize_corner_sw_ne.png';
 
 // -- Ready-to-use CSS cursor value strings --------------------------------
 
@@ -49,8 +50,11 @@ export const CURSOR_RESIZE_WIDTH = `url(${imgResizeWidth}) 14 14, ew-resize`;
 /** Resize height — vertical/top-bottom-edge resize handles. */
 export const CURSOR_RESIZE_HEIGHT = `url(${imgResizeHeight}) 14 14, ns-resize`;
 
-/** Resize corner — diagonal/corner resize handles. */
-export const CURSOR_RESIZE_CORNER = `url(${imgResizeCorner}) 14 14, nwse-resize`;
+/** Resize corner — diagonal NW↔SE (top-left / bottom-right). */
+export const CURSOR_RESIZE_CORNER = `url(${imgResizeCornerNWSE}) 14 14, nwse-resize`;
+
+/** Resize corner — diagonal NE↔SW (top-right / bottom-left). */
+export const CURSOR_RESIZE_CORNER_NESW = `url(${imgResizeCornerNESW}) 14 14, nesw-resize`;
 
 // -- Inject CSS custom properties for use in app.css overrides ---------------
 // Vite resolves the PNG imports at build time, so we set them on :root here.

@@ -16,6 +16,7 @@ import {
   CURSOR_RESIZE_WIDTH,
   CURSOR_RESIZE_HEIGHT,
   CURSOR_RESIZE_CORNER,
+  CURSOR_RESIZE_CORNER_NESW,
 } from '../../assets/cursors/cursors';
 import { ColorSwatchSidebar } from '../ContextMenu/menuUtils';
 import { resolveActivePalette } from '../../styles/palettes';
@@ -1175,8 +1176,8 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
             >
               {/* Corner handles — centered on the border corners */}
               <div className="nodrag nopan" style={{ ...handleBase, top: -handleHalf, left: -handleHalf, cursor: CURSOR_RESIZE_CORNER, pointerEvents: 'auto' }} onMouseDown={(e) => handleResizeStart(e, ['top', 'left'])} />
-              <div className="nodrag nopan" style={{ ...handleBase, top: -handleHalf, right: -handleHalf, cursor: CURSOR_RESIZE_CORNER, pointerEvents: 'auto' }} onMouseDown={(e) => handleResizeStart(e, ['top', 'right'])} />
-              <div className="nodrag nopan" style={{ ...handleBase, bottom: -handleHalf, left: -handleHalf, cursor: CURSOR_RESIZE_CORNER, pointerEvents: 'auto' }} onMouseDown={(e) => handleResizeStart(e, ['bottom', 'left'])} />
+              <div className="nodrag nopan" style={{ ...handleBase, top: -handleHalf, right: -handleHalf, cursor: CURSOR_RESIZE_CORNER_NESW, pointerEvents: 'auto' }} onMouseDown={(e) => handleResizeStart(e, ['top', 'right'])} />
+              <div className="nodrag nopan" style={{ ...handleBase, bottom: -handleHalf, left: -handleHalf, cursor: CURSOR_RESIZE_CORNER_NESW, pointerEvents: 'auto' }} onMouseDown={(e) => handleResizeStart(e, ['bottom', 'left'])} />
               <div className="nodrag nopan" style={{ ...handleBase, bottom: -handleHalf, right: -handleHalf, cursor: CURSOR_RESIZE_CORNER, pointerEvents: 'auto' }} onMouseDown={(e) => handleResizeStart(e, ['bottom', 'right'])} />
 
               {/* Edge handles — centered on the border midpoints */}
