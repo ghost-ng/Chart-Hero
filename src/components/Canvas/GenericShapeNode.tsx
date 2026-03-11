@@ -1320,8 +1320,8 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
               >
                 <ArrowSvg
                   fill={applyOpacity(fillColor, opacity)}
-                  stroke={isSelected ? selectionColor : applyOpacity(borderColor, opacity)}
-                  strokeW={isSelected ? Math.max(borderW, selectionThickness) : borderColor !== 'transparent' ? borderW : 0}
+                  stroke={applyOpacity(borderColor, opacity)}
+                  strokeW={borderColor !== 'transparent' ? borderW : 0}
                 />
               </svg>
             )}
@@ -1338,8 +1338,8 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
               >
                 <ShapeSvg
                   fill={applyOpacity(fillColor, opacity)}
-                  stroke={isSelected ? selectionColor : applyOpacity(borderColor, opacity)}
-                  strokeW={isSelected ? Math.max(borderW, selectionThickness) : borderColor !== 'transparent' ? borderW : 0}
+                  stroke={applyOpacity(borderColor, opacity)}
+                  strokeW={borderColor !== 'transparent' ? borderW : 0}
                 />
               </svg>
             )}
@@ -1359,8 +1359,8 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
                 <polygon
                   points="50,0 100,50 50,100 0,50"
                   fill={applyOpacity(fillColor, opacity)}
-                  stroke={isSelected ? selectionColor : applyOpacity(borderColor, opacity)}
-                  strokeWidth={isSelected ? Math.max(borderW, selectionThickness) : borderColor !== 'transparent' ? borderW : 0}
+                  stroke={applyOpacity(borderColor, opacity)}
+                  strokeWidth={borderColor !== 'transparent' ? borderW : 0}
                   strokeLinejoin="round"
                 />
               </svg>
@@ -1378,7 +1378,7 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
                 <path
                   d={nodeData.svgPath}
                   fill="none"
-                  stroke={isSelected ? selectionColor : applyOpacity(nodeData.svgStrokeColor || borderColor || '#000000', opacity)}
+                  stroke={applyOpacity(nodeData.svgStrokeColor || borderColor || '#000000', opacity)}
                   strokeWidth={nodeData.svgStrokeWidth || 3}
                   strokeLinecap="round"
                   strokeLinejoin="round"
