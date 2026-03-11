@@ -1079,18 +1079,24 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
       />
 
       {/* Selection outline rendered OUTSIDE the node border */}
-      {isSelected && (
-        <div
-          style={{
-            position: 'absolute',
-            inset: -(selectionThickness * 0.75 + 1),
-            border: `${selectionThickness * 0.75}px solid ${selectionColor}`,
-            borderRadius: noBox ? 4 : (userBorderRadius ?? (shapeStyles[shape] as Record<string, unknown>)?.borderRadius as number ?? 8) + 2,
-            pointerEvents: 'none',
-            zIndex: 40,
-          }}
-        />
-      )}
+      {isSelected && (() => {
+        const selBorderW = selectionThickness * 0.75;
+        // borderW is rendered as box-shadow spread outside the bounding box,
+        // so the outline must clear it: borderW + 1px gap + outline thickness
+        const outset = borderW + 1 + selBorderW;
+        return (
+          <div
+            style={{
+              position: 'absolute',
+              inset: -outset,
+              border: `${selBorderW}px solid ${selectionColor}`,
+              borderRadius: noBox ? 4 : (userBorderRadius ?? (shapeStyles[shape] as Record<string, unknown>)?.borderRadius as number ?? 8) + borderW + 2,
+              pointerEvents: 'none',
+              zIndex: 40,
+            }}
+          />
+        );
+      })()}
 
       {/* Group sibling dotted outline when a fellow group member is selected */}
       {isGroupSiblingSelected && (
