@@ -1159,31 +1159,32 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
         const handleBase: React.CSSProperties = {
           position: 'absolute', backgroundColor: 'white', borderRadius: handleHalf,
           width: handleSize, height: handleSize, border: handleBorder, zIndex: 50,
+          boxSizing: 'border-box',
         };
         const br = noBox ? 4 : (userBorderRadius ?? (shapeStyles[shape] as Record<string, unknown>)?.borderRadius as number ?? 8) + borderW + 2;
 
         return (
           <>
-            {/* Selection outline */}
+            {/* Selection outline — also serves as positioning parent for handles */}
             <div
               style={{
                 position: 'absolute', inset: -outset,
                 border: `${selBorderW}px solid ${selectionColor}`,
                 borderRadius: br, pointerEvents: 'none', zIndex: 40,
               }}
-            />
+            >
+              {/* Corner handles — centered on the border corners */}
+              <div className="nodrag nopan" style={{ ...handleBase, top: -handleHalf, left: -handleHalf, cursor: CURSOR_RESIZE_CORNER, pointerEvents: 'auto' }} onMouseDown={(e) => handleResizeStart(e, ['top', 'left'])} />
+              <div className="nodrag nopan" style={{ ...handleBase, top: -handleHalf, right: -handleHalf, cursor: CURSOR_RESIZE_CORNER, pointerEvents: 'auto' }} onMouseDown={(e) => handleResizeStart(e, ['top', 'right'])} />
+              <div className="nodrag nopan" style={{ ...handleBase, bottom: -handleHalf, left: -handleHalf, cursor: CURSOR_RESIZE_CORNER, pointerEvents: 'auto' }} onMouseDown={(e) => handleResizeStart(e, ['bottom', 'left'])} />
+              <div className="nodrag nopan" style={{ ...handleBase, bottom: -handleHalf, right: -handleHalf, cursor: CURSOR_RESIZE_CORNER, pointerEvents: 'auto' }} onMouseDown={(e) => handleResizeStart(e, ['bottom', 'right'])} />
 
-            {/* Edge handles — single axis, aligned to the selection outline */}
-            <div className="nodrag nopan" style={{ position: 'absolute', top: -outset - 4, left: outset, right: outset, height: 10, cursor: CURSOR_RESIZE_HEIGHT, zIndex: 45 }} onMouseDown={(e) => handleResizeStart(e, ['top'])} />
-            <div className="nodrag nopan" style={{ position: 'absolute', bottom: -outset - 4, left: outset, right: outset, height: 10, cursor: CURSOR_RESIZE_HEIGHT, zIndex: 45 }} onMouseDown={(e) => handleResizeStart(e, ['bottom'])} />
-            <div className="nodrag nopan" style={{ position: 'absolute', left: -outset - 4, top: outset, bottom: outset, width: 10, cursor: CURSOR_RESIZE_WIDTH, zIndex: 45 }} onMouseDown={(e) => handleResizeStart(e, ['left'])} />
-            <div className="nodrag nopan" style={{ position: 'absolute', right: -outset - 4, top: outset, bottom: outset, width: 10, cursor: CURSOR_RESIZE_WIDTH, zIndex: 45 }} onMouseDown={(e) => handleResizeStart(e, ['right'])} />
-
-            {/* Corner handles — both axes */}
-            <div className="nodrag nopan" style={{ ...handleBase, top: -outset - handleHalf, left: -outset - handleHalf, cursor: CURSOR_RESIZE_CORNER }} onMouseDown={(e) => handleResizeStart(e, ['top', 'left'])} />
-            <div className="nodrag nopan" style={{ ...handleBase, top: -outset - handleHalf, right: -outset - handleHalf, cursor: CURSOR_RESIZE_CORNER }} onMouseDown={(e) => handleResizeStart(e, ['top', 'right'])} />
-            <div className="nodrag nopan" style={{ ...handleBase, bottom: -outset - handleHalf, left: -outset - handleHalf, cursor: CURSOR_RESIZE_CORNER }} onMouseDown={(e) => handleResizeStart(e, ['bottom', 'left'])} />
-            <div className="nodrag nopan" style={{ ...handleBase, bottom: -outset - handleHalf, right: -outset - handleHalf, cursor: CURSOR_RESIZE_CORNER }} onMouseDown={(e) => handleResizeStart(e, ['bottom', 'right'])} />
+              {/* Edge handles — centered on the border midpoints */}
+              <div className="nodrag nopan" style={{ position: 'absolute', top: -5, left: handleSize, right: handleSize, height: 10, cursor: CURSOR_RESIZE_HEIGHT, zIndex: 45, pointerEvents: 'auto' }} onMouseDown={(e) => handleResizeStart(e, ['top'])} />
+              <div className="nodrag nopan" style={{ position: 'absolute', bottom: -5, left: handleSize, right: handleSize, height: 10, cursor: CURSOR_RESIZE_HEIGHT, zIndex: 45, pointerEvents: 'auto' }} onMouseDown={(e) => handleResizeStart(e, ['bottom'])} />
+              <div className="nodrag nopan" style={{ position: 'absolute', left: -5, top: handleSize, bottom: handleSize, width: 10, cursor: CURSOR_RESIZE_WIDTH, zIndex: 45, pointerEvents: 'auto' }} onMouseDown={(e) => handleResizeStart(e, ['left'])} />
+              <div className="nodrag nopan" style={{ position: 'absolute', right: -5, top: handleSize, bottom: handleSize, width: 10, cursor: CURSOR_RESIZE_WIDTH, zIndex: 45, pointerEvents: 'auto' }} onMouseDown={(e) => handleResizeStart(e, ['right'])} />
+            </div>
           </>
         );
       })()}
@@ -1276,16 +1277,29 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
         });
       })()}
 
-      {/* Connection handles — each position has both source + target for bidirectional edges.
+      {/* Connection handles — offset outward to sit on the selection outline.
           SVG shapes get custom offsets so handles sit on the actual shape boundary. */}
-      <Handle type="target" position={Position.Top} id="top" className="charthero-handle" style={handleStyles.top} />
-      <Handle type="source" position={Position.Top} id="top" className="charthero-handle" style={handleStyles.top || { left: '50%' }} />
-      <Handle type="source" position={Position.Bottom} id="bottom" className="charthero-handle" style={handleStyles.bottom} />
-      <Handle type="target" position={Position.Bottom} id="bottom" className="charthero-handle" style={handleStyles.bottom || { left: '50%' }} />
-      <Handle type="target" position={Position.Left} id="left" className="charthero-handle" style={handleStyles.left} />
-      <Handle type="source" position={Position.Left} id="left" className="charthero-handle" style={handleStyles.left || { top: '50%' }} />
-      <Handle type="source" position={Position.Right} id="right" className="charthero-handle" style={handleStyles.right} />
-      <Handle type="target" position={Position.Right} id="right" className="charthero-handle" style={handleStyles.right || { top: '50%' }} />
+      {(() => {
+        // Push connector dots outward to sit on the selection border center
+        const selBW = selectionThickness * 0.75;
+        const connOffset = borderW + 1 + selBW / 2;
+        const topBase = handleStyles.top || { left: '50%' };
+        const bottomBase = handleStyles.bottom || { left: '50%' };
+        const leftBase = handleStyles.left || { top: '50%' };
+        const rightBase = handleStyles.right || { top: '50%' };
+        return (
+          <>
+            <Handle type="target" position={Position.Top} id="top" className="charthero-handle" style={{ ...topBase, top: -connOffset }} />
+            <Handle type="source" position={Position.Top} id="top" className="charthero-handle" style={{ ...topBase, top: -connOffset }} />
+            <Handle type="source" position={Position.Bottom} id="bottom" className="charthero-handle" style={{ ...bottomBase, bottom: -connOffset, top: 'auto' }} />
+            <Handle type="target" position={Position.Bottom} id="bottom" className="charthero-handle" style={{ ...bottomBase, bottom: -connOffset, top: 'auto' }} />
+            <Handle type="target" position={Position.Left} id="left" className="charthero-handle" style={{ ...leftBase, left: -connOffset }} />
+            <Handle type="source" position={Position.Left} id="left" className="charthero-handle" style={{ ...leftBase, left: -connOffset }} />
+            <Handle type="source" position={Position.Right} id="right" className="charthero-handle" style={{ ...rightBase, right: -connOffset, left: 'auto' }} />
+            <Handle type="target" position={Position.Right} id="right" className="charthero-handle" style={{ ...rightBase, right: -connOffset, left: 'auto' }} />
+          </>
+        );
+      })()}
 
       {/* Label element builder (shared by overlay and external positions) */}
       {(() => {
