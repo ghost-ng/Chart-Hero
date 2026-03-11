@@ -45,10 +45,10 @@ export const CURSOR_ELBOW_MOVE = `url(${imgElbowMove}) 16 16, grab`;
 export const CURSOR_MOVE = `url(${imgMove}) 14 14, move`;
 
 /** Resize width — horizontal/side-edge resize handles. */
-export const CURSOR_RESIZE_WIDTH = `url(${imgResizeWidth}) 10 10, ew-resize`;
+export const CURSOR_RESIZE_WIDTH = `url(${imgResizeWidth}) 12 12, ew-resize`;
 
 /** Resize height — vertical/top-bottom-edge resize handles. */
-export const CURSOR_RESIZE_HEIGHT = `url(${imgResizeHeight}) 10 10, ns-resize`;
+export const CURSOR_RESIZE_HEIGHT = `url(${imgResizeHeight}) 12 12, ns-resize`;
 
 /** Resize corner — diagonal NW↔SE (top-left / bottom-right). */
 export const CURSOR_RESIZE_CORNER = `url(${imgResizeCornerNWSE}) 10 10, nwse-resize`;

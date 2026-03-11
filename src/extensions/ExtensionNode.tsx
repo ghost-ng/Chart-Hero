@@ -191,6 +191,7 @@ const ExtensionNode: React.FC<NodeProps> = ({ id, data, selected }) => {
       const startH = nodeData.height || 80;
       const startPos = { x: node.position.x, y: node.position.y };
       const zoom = reactFlowInstance.getZoom();
+      const ar = startW / startH;
 
       const onMove = (me: MouseEvent) => {
         const deltaX = (me.clientX - startX) / zoom;
@@ -205,16 +206,26 @@ const ExtensionNode: React.FC<NodeProps> = ({ id, data, selected }) => {
           if (edge === 'right') {
             newW = Math.max(MIN_WIDTH, startW + deltaX);
           } else if (edge === 'left') {
-            const proposed = startW - deltaX;
-            newW = Math.max(MIN_WIDTH, proposed);
-            // Move position to keep right edge fixed
+            newW = Math.max(MIN_WIDTH, startW - deltaX);
             newX = startPos.x + (startW - newW);
           } else if (edge === 'bottom') {
             newH = Math.max(MIN_HEIGHT, startH + deltaY);
           } else if (edge === 'top') {
-            const proposed = startH - deltaY;
-            newH = Math.max(MIN_HEIGHT, proposed);
+            newH = Math.max(MIN_HEIGHT, startH - deltaY);
             newY = startPos.y + (startH - newH);
+          }
+        }
+
+        // Shift = maintain aspect ratio
+        if (me.shiftKey) {
+          if (edges.length === 1) {
+            if (edges[0] === 'left' || edges[0] === 'right') newH = newW / ar;
+            else newW = newH * ar;
+          } else {
+            if (Math.abs(newW - startW) >= Math.abs(newH - startH)) newH = newW / ar;
+            else newW = newH * ar;
+            if (edges.includes('left')) newX = startPos.x + (startW - newW);
+            if (edges.includes('top')) newY = startPos.y + (startH - newH);
           }
         }
 
