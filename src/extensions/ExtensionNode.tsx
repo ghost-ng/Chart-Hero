@@ -451,9 +451,9 @@ const ExtensionNode: React.FC<NodeProps> = ({ id, data, selected }) => {
           <div
             className="nodrag nopan"
             style={{
-              position: 'absolute', top: -7, left: -7, width: 14, height: 14,
+              position: 'absolute', top: -6, left: -6, width: 12, height: 12,
               cursor: CURSOR_RESIZE_CORNER, zIndex: 50,
-              backgroundColor: 'white', borderRadius: 7,
+              backgroundColor: 'white', borderRadius: 6,
               border: `${Math.max(1.5, selectionThickness)}px solid ${selectionColor}`,
             }}
             onMouseDown={(e) => handleResizeStart(e, ['top', 'left'])}
@@ -462,9 +462,9 @@ const ExtensionNode: React.FC<NodeProps> = ({ id, data, selected }) => {
           <div
             className="nodrag nopan"
             style={{
-              position: 'absolute', top: -7, right: -7, width: 14, height: 14,
+              position: 'absolute', top: -6, right: -6, width: 12, height: 12,
               cursor: CURSOR_RESIZE_CORNER_NESW, zIndex: 50,
-              backgroundColor: 'white', borderRadius: 7,
+              backgroundColor: 'white', borderRadius: 6,
               border: `${Math.max(1.5, selectionThickness)}px solid ${selectionColor}`,
             }}
             onMouseDown={(e) => handleResizeStart(e, ['top', 'right'])}
@@ -473,9 +473,9 @@ const ExtensionNode: React.FC<NodeProps> = ({ id, data, selected }) => {
           <div
             className="nodrag nopan"
             style={{
-              position: 'absolute', bottom: -7, left: -7, width: 14, height: 14,
+              position: 'absolute', bottom: -6, left: -6, width: 12, height: 12,
               cursor: CURSOR_RESIZE_CORNER_NESW, zIndex: 50,
-              backgroundColor: 'white', borderRadius: 7,
+              backgroundColor: 'white', borderRadius: 6,
               border: `${Math.max(1.5, selectionThickness)}px solid ${selectionColor}`,
             }}
             onMouseDown={(e) => handleResizeStart(e, ['bottom', 'left'])}
@@ -484,9 +484,9 @@ const ExtensionNode: React.FC<NodeProps> = ({ id, data, selected }) => {
           <div
             className="nodrag nopan"
             style={{
-              position: 'absolute', bottom: -7, right: -7, width: 14, height: 14,
+              position: 'absolute', bottom: -6, right: -6, width: 12, height: 12,
               cursor: CURSOR_RESIZE_CORNER, zIndex: 50,
-              backgroundColor: 'white', borderRadius: 7,
+              backgroundColor: 'white', borderRadius: 6,
               border: `${Math.max(1.5, selectionThickness)}px solid ${selectionColor}`,
             }}
             onMouseDown={(e) => handleResizeStart(e, ['bottom', 'right'])}

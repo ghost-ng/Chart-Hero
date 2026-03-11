@@ -1154,7 +1154,7 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
         // borderW is rendered as box-shadow spread outside the bounding box,
         // so the outline must clear it: borderW + 1px gap + outline thickness
         const outset = borderW + 1 + selBorderW;
-        const handleSize = 14;
+        const handleSize = 12;
         const handleHalf = handleSize / 2;
         const handleBorder = `${Math.max(1.5, selectionThickness)}px solid ${selectionColor}`;
         const handleBase: React.CSSProperties = {

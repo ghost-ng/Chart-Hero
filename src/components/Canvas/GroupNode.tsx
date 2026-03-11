@@ -1,15 +1,27 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Handle, Position, NodeResizer, type NodeProps } from '@xyflow/react';
+import { Handle, Position, useReactFlow, type NodeProps } from '@xyflow/react';
 import { icons } from 'lucide-react';
 import chroma from 'chroma-js';
 import { useFlowStore, type FlowNodeData, getStatusIndicators } from '../../store/flowStore';
 import { useUIStore } from '../../store/uiStore';
 import { StatusBadge } from './GenericShapeNode';
+import {
+  CURSOR_RESIZE_WIDTH,
+  CURSOR_RESIZE_HEIGHT,
+  CURSOR_RESIZE_CORNER,
+  CURSOR_RESIZE_CORNER_NESW,
+} from '../../assets/cursors/cursors';
+
+const MIN_GROUP_WIDTH = 100;
+const MIN_GROUP_HEIGHT = 80;
 
 const GroupNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const nodeData = data as FlowNodeData;
   const selectionColor = useUIStore((s) => s.selectionColor);
+  const selectionThickness = useUIStore((s) => s.selectionThickness);
   const updateNodeData = useFlowStore((s) => s.updateNodeData);
+  const updateNodePosition = useFlowStore((s) => s.updateNodePosition);
+  const reactFlowInstance = useReactFlow();
   const label = nodeData.label || 'Group';
   const rawFillColor = nodeData.color || '#f1f5f9';
   const fillOpacity = nodeData.fillOpacity ?? 1;
@@ -131,6 +143,57 @@ const GroupNode: React.FC<NodeProps> = ({ id, data, selected }) => {
     [id, nodeData.rotation, updateNodeData],
   );
 
+  // ---- Custom resize handler ----
+  const handleResizeStart = useCallback(
+    (e: React.MouseEvent, edges: ('left' | 'right' | 'top' | 'bottom')[]) => {
+      e.stopPropagation();
+      e.preventDefault();
+      const node = reactFlowInstance.getNode(id);
+      if (!node) return;
+      const startX = e.clientX;
+      const startY = e.clientY;
+      const startW = width;
+      const startH = height;
+      const startPos = { x: node.position.x, y: node.position.y };
+      const zoom = reactFlowInstance.getZoom();
+      const ar = startW / startH;
+
+      const onMove = (me: MouseEvent) => {
+        const dx = (me.clientX - startX) / zoom;
+        const dy = (me.clientY - startY) / zoom;
+        let newW = startW, newH = startH, newX = startPos.x, newY = startPos.y;
+        for (const edge of edges) {
+          if (edge === 'right') newW = Math.max(MIN_GROUP_WIDTH, startW + dx);
+          else if (edge === 'left') { newW = Math.max(MIN_GROUP_WIDTH, startW - dx); newX = startPos.x + (startW - newW); }
+          else if (edge === 'bottom') newH = Math.max(MIN_GROUP_HEIGHT, startH + dy);
+          else if (edge === 'top') { newH = Math.max(MIN_GROUP_HEIGHT, startH - dy); newY = startPos.y + (startH - newH); }
+        }
+        if (me.shiftKey) {
+          if (edges.length === 1) {
+            if (edges[0] === 'left' || edges[0] === 'right') newH = newW / ar;
+            else newW = newH * ar;
+          } else {
+            if (Math.abs(newW - startW) >= Math.abs(newH - startH)) newH = newW / ar;
+            else newW = newH * ar;
+            if (edges.includes('left')) newX = startPos.x + (startW - newW);
+            if (edges.includes('top')) newY = startPos.y + (startH - newH);
+          }
+        }
+        updateNodeData(id, { width: newW, height: newH });
+        updateNodePosition(id, { x: newX, y: newY });
+        window.dispatchEvent(new CustomEvent('charthero:node-resize', { detail: { nodeId: id, x: newX, y: newY, width: newW, height: newH } }));
+      };
+      const onUp = () => {
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+        window.dispatchEvent(new CustomEvent('charthero:node-resize-end'));
+      };
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    },
+    [id, width, height, reactFlowInstance, updateNodeData, updateNodePosition],
+  );
+
   // Visual transforms — rotation on wrapper, flip on inner
   const flipParts: string[] = [];
   if (flipH) flipParts.push('scaleX(-1)');
@@ -154,15 +217,13 @@ const GroupNode: React.FC<NodeProps> = ({ id, data, selected }) => {
           width: '100%',
           height: '100%',
           backgroundColor: fillColor,
-          border: `${borderWidth}px ${selected ? `solid ${selectionColor}` : `${borderStyle} ${borderColor}`}`,
+          border: `${borderWidth}px ${borderStyle} ${borderColor}`,
           borderRadius,
           opacity,
           position: 'relative',
           transform: flipParts.length > 0 ? flipParts.join(' ') : undefined,
           transition: 'box-shadow 0.15s, transform 0.2s',
-          boxShadow: selected
-            ? `0 0 0 ${1.5}px ${selectionColor}, 0 0 8px 2px ${selectionColor}40`
-            : '0 1px 3px rgba(0,0,0,0.1)',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
         }}
       >
         {/* Group label at top — double-click to edit */}
@@ -229,23 +290,33 @@ const GroupNode: React.FC<NodeProps> = ({ id, data, selected }) => {
         <Handle type="target" position={Position.Right} id="right" className="charthero-handle" />
       </div>
 
-      <NodeResizer
-        isVisible={!!selected}
-        minWidth={100}
-        minHeight={80}
-        lineStyle={{ borderColor: selectionColor, borderWidth: 1 }}
-        handleStyle={{
-          width: 12,
-          height: 12,
-          borderRadius: 6,
-          backgroundColor: 'white',
-          border: `2px solid ${selectionColor}`,
-          zIndex: 50,
-        }}
-        onResize={(_event, params) => {
-          updateNodeData(id, { width: params.width, height: params.height });
-        }}
-      />
+      {/* Custom selection outline + resize handles */}
+      {selected && (() => {
+        const selBW = selectionThickness * 0.75;
+        const outset = borderWidth + 1 + selBW;
+        const hs = 12;
+        const hh = hs / 2;
+        const hBorder = `${Math.max(1.5, selectionThickness)}px solid ${selectionColor}`;
+        const hBase: React.CSSProperties = {
+          position: 'absolute', backgroundColor: 'white', borderRadius: hh,
+          width: hs, height: hs, border: hBorder, zIndex: 50, boxSizing: 'border-box',
+          pointerEvents: 'auto',
+        };
+        return (
+          <div style={{ position: 'absolute', inset: -outset, border: `${selBW}px solid ${selectionColor}`, borderRadius: borderRadius + borderWidth + 2, pointerEvents: 'none', zIndex: 40 }}>
+            {/* Corner handles */}
+            <div className="nodrag nopan" style={{ ...hBase, top: -hh, left: -hh, cursor: CURSOR_RESIZE_CORNER }} onMouseDown={(e) => handleResizeStart(e, ['top', 'left'])} />
+            <div className="nodrag nopan" style={{ ...hBase, top: -hh, right: -hh, cursor: CURSOR_RESIZE_CORNER_NESW }} onMouseDown={(e) => handleResizeStart(e, ['top', 'right'])} />
+            <div className="nodrag nopan" style={{ ...hBase, bottom: -hh, left: -hh, cursor: CURSOR_RESIZE_CORNER_NESW }} onMouseDown={(e) => handleResizeStart(e, ['bottom', 'left'])} />
+            <div className="nodrag nopan" style={{ ...hBase, bottom: -hh, right: -hh, cursor: CURSOR_RESIZE_CORNER }} onMouseDown={(e) => handleResizeStart(e, ['bottom', 'right'])} />
+            {/* Edge handles */}
+            <div className="nodrag nopan" style={{ position: 'absolute', top: -5, left: hs, right: hs, height: 10, cursor: CURSOR_RESIZE_HEIGHT, zIndex: 45, pointerEvents: 'auto' }} onMouseDown={(e) => handleResizeStart(e, ['top'])} />
+            <div className="nodrag nopan" style={{ position: 'absolute', bottom: -5, left: hs, right: hs, height: 10, cursor: CURSOR_RESIZE_HEIGHT, zIndex: 45, pointerEvents: 'auto' }} onMouseDown={(e) => handleResizeStart(e, ['bottom'])} />
+            <div className="nodrag nopan" style={{ position: 'absolute', left: -5, top: hs, bottom: hs, width: 10, cursor: CURSOR_RESIZE_WIDTH, zIndex: 45, pointerEvents: 'auto' }} onMouseDown={(e) => handleResizeStart(e, ['left'])} />
+            <div className="nodrag nopan" style={{ position: 'absolute', right: -5, top: hs, bottom: hs, width: 10, cursor: CURSOR_RESIZE_WIDTH, zIndex: 45, pointerEvents: 'auto' }} onMouseDown={(e) => handleResizeStart(e, ['right'])} />
+          </div>
+        );
+      })()}
 
       {/* Status puck badges */}
       {(() => {
