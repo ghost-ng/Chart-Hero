@@ -1,7 +1,7 @@
 {
   "name": "chart-hero",
   "private": true,
-  "version": "0.16.2",
+  "version": "0.16.3",
   "description": "A browser-based diagramming application for creating flowcharts, system architecture diagrams, and more",
   "license": "MIT",
   "type": "module",

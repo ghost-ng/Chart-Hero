@@ -629,6 +629,35 @@ export const StatusBadge: React.FC<StatusBadgeProps & { nodeId: string; puckId: 
               All pucks (global)
             </button>
             <div className="my-1 h-px bg-slate-200 dark:bg-dk-border" />
+            <div className="px-2.5 py-0.5 text-[9px] font-semibold text-slate-400 dark:text-dk-faint uppercase tracking-wide">Resize</div>
+            <div className="flex items-center gap-1 px-2 py-0.5">
+              {[8, 12, 16, 20, 24, 32].map((s) => (
+                <button
+                  key={s}
+                  onClick={() => {
+                    if (onUpdateSize) onUpdateSize(s);
+                    setCtxMenu(null);
+                  }}
+                  className={`flex items-center justify-center rounded hover:bg-slate-100 dark:hover:bg-dk-hover cursor-pointer transition-colors duration-75 ${
+                    size === s ? 'ring-1 ring-blue-400' : ''
+                  }`}
+                  style={{ width: 28, height: 28 }}
+                  data-tooltip={`${s}px`}
+                >
+                  <span className="rounded-full" style={{ width: Math.min(s, 20), height: Math.min(s, 20), backgroundColor: bgColor, border: borderStr }} />
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => {
+                if (onUpdateSize) onUpdateSize(12);
+                setCtxMenu(null);
+              }}
+              className="flex items-center gap-2 w-full px-2.5 py-1 text-left text-xs rounded hover:bg-slate-100 dark:hover:bg-dk-hover text-slate-700 dark:text-dk-text cursor-pointer transition-colors duration-75"
+            >
+              Reset Size (12px)
+            </button>
+            <div className="my-1 h-px bg-slate-200 dark:bg-dk-border" />
             <button
               onClick={() => {
                 useFlowStore.getState().removeStatusPuck(nodeId, puckId);
@@ -716,15 +745,35 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
     : (!isTransparentFill ? ensureReadableText(fillColor, resolved.textColor) : ensureReadableText(canvasBg, resolved.textColor));
   const fontSize = resolved.fontSize;
 
-  // Focus the input when editing starts and auto-size
+  // Focus the input when editing starts and auto-size.
+  // Place the cursor at the click position instead of selecting all text.
+  const dblClickOffsetRef = useRef<{ x: number; y: number } | null>(null);
   useEffect(() => {
     if (isEditing && inputRef.current) {
       const ta = inputRef.current;
       ta.focus();
-      ta.select();
       // Auto-size to fit existing content
       ta.style.height = 'auto';
       ta.style.height = `${ta.scrollHeight}px`;
+
+      // Try to place the caret near the double-click position
+      const clickPos = dblClickOffsetRef.current;
+      if (clickPos && typeof document.caretRangeFromPoint === 'function') {
+        // Use a rAF so the textarea has rendered its text
+        requestAnimationFrame(() => {
+          const range = document.caretRangeFromPoint(clickPos.x, clickPos.y);
+          if (range && ta.contains(range.startContainer)) {
+            ta.setSelectionRange(range.startOffset, range.startOffset);
+          } else {
+            // Fallback: place cursor at end
+            ta.setSelectionRange(ta.value.length, ta.value.length);
+          }
+        });
+      } else {
+        // Fallback: place cursor at end
+        ta.setSelectionRange(ta.value.length, ta.value.length);
+      }
+      dblClickOffsetRef.current = null;
     }
   }, [isEditing]);
 
@@ -738,6 +787,8 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const handleDoubleClick = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
+      // Store click coordinates so the caret can be placed near the click
+      dblClickOffsetRef.current = { x: e.clientX, y: e.clientY };
       setIsEditingNode(id);
     },
     [id, setIsEditingNode],
