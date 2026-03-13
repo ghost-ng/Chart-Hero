@@ -127,7 +127,7 @@ const AIChatPanel: React.FC = () => {
 
       // Clamp: keep at least 40px visible on each edge, ensure header never clips at top
       newX = Math.max(-size.width + 80, Math.min(newX, window.innerWidth - 80));
-      newY = Math.max(8, Math.min(newY, window.innerHeight - 40));
+      newY = Math.max(0, Math.min(newY, window.innerHeight - 40));
 
       setPosition({ x: newX, y: newY });
     };
@@ -149,7 +149,7 @@ const AIChatPanel: React.FC = () => {
     const clamp = () => {
       setPosition((prev) => ({
         x: Math.max(-size.width + 80, Math.min(prev.x, window.innerWidth - 80)),
-        y: Math.max(8, Math.min(prev.y, window.innerHeight - 40)),
+        y: Math.max(0, Math.min(prev.y, window.innerHeight - 40)),
       }));
     };
     // Clamp immediately on mount (handles stale savedPosition after close/reopen)
@@ -215,7 +215,7 @@ const AIChatPanel: React.FC = () => {
 
       // Clamp to viewport (keep 2px margin at top to avoid header clipping)
       if (newX < 0) { newW += newX; newX = 0; }
-      if (newY < 8) { newH += (newY - 8); newY = 8; }
+      if (newY < 0) { newH += newY; newY = 0; }
       newW = Math.min(newW, window.innerWidth - newX);
       newH = Math.min(newH, window.innerHeight - newY);
 
@@ -469,7 +469,7 @@ const AIChatPanel: React.FC = () => {
         `}
         style={{
           left: position.x,
-          top: Math.max(8, position.y),
+          top: Math.max(0, position.y),
           width: size.width,
           height: size.height,
         }}
@@ -477,7 +477,7 @@ const AIChatPanel: React.FC = () => {
         {/* Header — draggable */}
         <div
           className={`
-            flex items-center justify-between px-3 py-2.5 border-b shrink-0 rounded-t-xl
+            flex items-center justify-between px-3 py-2.5 min-h-10 border-b shrink-0 rounded-t-xl
             ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}
             ${darkMode ? 'border-dk-border bg-dk-panel' : 'border-slate-200 bg-slate-50'}
           `}

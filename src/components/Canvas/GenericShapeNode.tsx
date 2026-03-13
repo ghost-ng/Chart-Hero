@@ -20,6 +20,7 @@ import {
 } from '../../assets/cursors/cursors';
 import { EdgeColorSidebar } from '../ContextMenu/menuUtils';
 import { resolveActivePalette } from '../../styles/palettes';
+import InlineEdit from '../shared/InlineEdit';
 
 // ---------------------------------------------------------------------------
 // Shape SVG paths (clip-path / outline)
@@ -443,10 +444,15 @@ export const StatusBadge: React.FC<StatusBadgeProps & { nodeId: string; puckId: 
 
       if (isResize) return;
 
-      // Temporarily hide badge hit zone so elementFromPoint hits the node underneath
+      // Temporarily hide badge AND source node so elementFromPoint can see through
+      // to any target node underneath (especially important for large group nodes
+      // whose wrapper covers child/adjacent nodes)
       badge.style.pointerEvents = 'none';
       badge.style.display = 'none';
+      const sourceNodeEl = badge.closest('.react-flow__node') as HTMLElement | null;
+      if (sourceNodeEl) sourceNodeEl.style.pointerEvents = 'none';
       const dropTarget = document.elementFromPoint(upE.clientX, upE.clientY);
+      if (sourceNodeEl) sourceNodeEl.style.pointerEvents = '';
       badge.style.display = '';
       badge.style.pointerEvents = '';
       const targetNodeEl = dropTarget?.closest('.react-flow__node') as HTMLElement | null;
@@ -711,10 +717,8 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
 
   const isEditing = isEditingNode === id;
   const iconPosition = nodeData.iconPosition || 'left';
-  const [editValue, setEditValue] = useState(nodeData.label);
   const [autoFitFontSize, setAutoFitFontSize] = useState<number | null>(null);
   const [isRotating, setIsRotating] = useState(false);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
   const labelRef = useRef<HTMLDivElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const resizeStartRef = useRef<{ width: number; height: number; borderWidth: number; pucks: { id: string; size: number; borderWidth: number }[] } | null>(null);
@@ -745,77 +749,33 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
     : (!isTransparentFill ? ensureReadableText(fillColor, resolved.textColor) : ensureReadableText(canvasBg, resolved.textColor));
   const fontSize = resolved.fontSize;
 
-  // Focus the input when editing starts and auto-size.
-  // Place the cursor at the click position instead of selecting all text.
+  // Double-click to enter edit mode — store click coords for caret placement
   const dblClickOffsetRef = useRef<{ x: number; y: number } | null>(null);
-  useEffect(() => {
-    if (isEditing && inputRef.current) {
-      const ta = inputRef.current;
-      ta.focus();
-      // Auto-size to fit existing content
-      ta.style.height = 'auto';
-      ta.style.height = `${ta.scrollHeight}px`;
-
-      // Try to place the caret near the double-click position
-      const clickPos = dblClickOffsetRef.current;
-      if (clickPos && typeof document.caretRangeFromPoint === 'function') {
-        // Use a rAF so the textarea has rendered its text
-        requestAnimationFrame(() => {
-          const range = document.caretRangeFromPoint(clickPos.x, clickPos.y);
-          if (range && ta.contains(range.startContainer)) {
-            ta.setSelectionRange(range.startOffset, range.startOffset);
-          } else {
-            // Fallback: place cursor at end
-            ta.setSelectionRange(ta.value.length, ta.value.length);
-          }
-        });
-      } else {
-        // Fallback: place cursor at end
-        ta.setSelectionRange(ta.value.length, ta.value.length);
-      }
-      dblClickOffsetRef.current = null;
-    }
-  }, [isEditing]);
-
-  // Sync edit value when data changes externally
-  useEffect(() => {
-    if (!isEditing) {
-      setEditValue(nodeData.label);
-    }
-  }, [nodeData.label, isEditing]);
 
   const handleDoubleClick = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
-      // Store click coordinates so the caret can be placed near the click
+      // If already editing, let InlineEdit handle double-click natively (word select)
+      if (isEditingNode === id) return;
       dblClickOffsetRef.current = { x: e.clientX, y: e.clientY };
       setIsEditingNode(id);
     },
-    [id, setIsEditingNode],
+    [id, isEditingNode, setIsEditingNode],
   );
 
-  const commitEdit = useCallback(() => {
-    const trimmed = editValue.trim();
-    if (trimmed !== nodeData.label) {
-      updateNodeData(id, { label: trimmed });
-    }
-    setIsEditingNode(null);
-  }, [editValue, nodeData.label, id, updateNodeData, setIsEditingNode]);
-
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === 'Enter' && e.shiftKey) {
-        // Shift+Enter inserts a newline (textarea handles this natively)
-        return;
+  const handleEditCommit = useCallback(
+    (trimmed: string) => {
+      if (trimmed !== nodeData.label) {
+        updateNodeData(id, { label: trimmed });
       }
-      if (e.key === 'Enter') {
-        commitEdit();
-      } else if (e.key === 'Escape') {
-        setEditValue(nodeData.label);
-        setIsEditingNode(null);
-      }
+      setIsEditingNode(null);
     },
-    [commitEdit, nodeData.label, setIsEditingNode],
+    [nodeData.label, id, updateNodeData, setIsEditingNode],
+  );
+
+  const handleEditCancel = useCallback(() => {
+    setIsEditingNode(null);
+  }, [setIsEditingNode],
   );
 
   // ---------------------------------------------------------------------------
@@ -1418,30 +1378,15 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
             >
               {IconComponent && renderStyledIcon(actualIconSize)}
               {isEditing ? (
-                <textarea
-                  ref={inputRef}
-                  className="bg-transparent text-center outline-none border-none w-full px-1 resize-none"
-                  style={{
-                    color: textColor,
-                    fontSize: scaledFontSize,
-                    lineHeight: 1.3,
-                    wordBreak: 'break-word',
-                    overflowWrap: 'break-word',
-                    whiteSpace: 'pre-wrap',
-                    overflow: 'hidden',
-                    minHeight: '1.3em',
-                  }}
-                  value={editValue}
-                  rows={Math.max(1, (editValue || '').split('\n').length)}
-                  onChange={(e) => {
-                    setEditValue(e.target.value);
-                    // Auto-resize textarea to fit content
-                    const ta = e.target;
-                    ta.style.height = 'auto';
-                    ta.style.height = `${ta.scrollHeight}px`;
-                  }}
-                  onBlur={commitEdit}
-                  onKeyDown={handleKeyDown}
+                <InlineEdit
+                  value={nodeData.label}
+                  onCommit={handleEditCommit}
+                  onCancel={handleEditCancel}
+                  multiline
+                  clickPosition={dblClickOffsetRef.current}
+                  color={textColor}
+                  fontSize={scaledFontSize}
+                  className="bg-transparent text-center outline-none border-none w-full px-1"
                 />
               ) : (
                 <span className="text-center select-none break-words leading-tight whitespace-pre-wrap" style={{ wordBreak: 'break-word', cursor: 'var(--cursor-select)' }}>

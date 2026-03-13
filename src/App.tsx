@@ -114,8 +114,32 @@ const App: React.FC = () => {
       return; // Don't also delete nodes
     }
 
-    // Existing node deletion
-    const { selectedNodes, removeNode } = useFlowStore.getState();
+    // Existing node + edge deletion
+    const { selectedNodes, selectedEdges, removeNode } = useFlowStore.getState();
+    // Remove selected edges that aren't connected to selected nodes (those get cleaned up by removeNode)
+    if (selectedEdges.length > 0) {
+      const nodeSet = new Set(selectedNodes);
+      useFlowStore.setState((draft: any) => {
+        const edgesToRemove = draft.selectedEdges.filter(
+          (eid: string) => !draft.edges.find((e: any) => e.id === eid && (nodeSet.has(e.source) || nodeSet.has(e.target)))
+        );
+        if (edgesToRemove.length > 0) {
+          const removeSet = new Set(edgesToRemove);
+          // Also remove associated endpoint nodes
+          for (const eid of edgesToRemove) {
+            const edge = draft.edges.find((e: any) => e.id === eid);
+            if (edge) {
+              const srcNode = draft.nodes.find((n: any) => n.id === edge.source);
+              const tgtNode = draft.nodes.find((n: any) => n.id === edge.target);
+              if (srcNode?.data?.isConnectorEndpoint) draft.nodes = draft.nodes.filter((n: any) => n.id !== srcNode.id);
+              if (tgtNode?.data?.isConnectorEndpoint) draft.nodes = draft.nodes.filter((n: any) => n.id !== tgtNode.id);
+            }
+          }
+          draft.edges = draft.edges.filter((e: any) => !removeSet.has(e.id));
+          draft.selectedEdges = draft.selectedEdges.filter((eid: string) => !removeSet.has(eid));
+        }
+      });
+    }
     for (const id of selectedNodes) {
       removeNode(id);
     }

@@ -13,6 +13,7 @@ import React, { useCallback, useRef, useState, useEffect, useLayoutEffect } from
 import { EdgeLabelRenderer, useReactFlow } from '@xyflow/react';
 import { useFlowStore } from '../../store/flowStore';
 import { CURSOR_SELECT, CURSOR_DRAG_ACTIVE } from '../../assets/cursors/cursors';
+import InlineEdit from '../shared/InlineEdit';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -307,8 +308,27 @@ const EdgeLabel: React.FC<EdgeLabelProps> = ({
     }
   }, [isDragging, handleMouseMove, handleMouseUp]);
 
+  // ---- Inline editing state ----
+  const [isEditing, setIsEditing] = useState(false);
+
+  const handleEditCommit = useCallback(
+    (trimmed: string) => {
+      setIsEditing(false);
+      if (trimmed !== label) {
+        updateEdgeData(edgeId, { label: trimmed || undefined });
+      }
+    },
+    [label, edgeId, updateEdgeData],
+  );
+
+  const handleEditCancel = useCallback(() => {
+    setIsEditing(false);
+  }, []);
+
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
+      // Don't start drag if we're editing
+      if (isEditing) return;
       // Only left button
       if (e.button !== 0) return;
       e.preventDefault();
@@ -319,13 +339,22 @@ const EdgeLabel: React.FC<EdgeLabelProps> = ({
       setIsDragging(true);
       setDragT(labelPosition);
     },
-    [labelPosition],
+    [labelPosition, isEditing],
+  );
+
+  const handleDoubleClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsEditing(true);
+    },
+    [],
   );
 
   return (
     <EdgeLabelRenderer>
       <div
-        className="absolute pointer-events-auto rounded px-2 py-0.5 font-medium shadow-sm border select-none"
+        className="absolute pointer-events-auto rounded px-2 py-0.5 font-medium shadow-sm border edge-label-container"
         style={{
           transform: `translate(-50%, -50%) translate(${lx}px, ${ly + offsetY}px)`,
           color: labelColor,
@@ -335,10 +364,23 @@ const EdgeLabel: React.FC<EdgeLabelProps> = ({
           whiteSpace: 'nowrap',
           cursor: isDragging ? CURSOR_DRAG_ACTIVE : CURSOR_SELECT,
           zIndex: isDragging ? 1000 : undefined,
+          userSelect: isEditing ? 'text' : 'none',
         }}
         onMouseDown={handleMouseDown}
+        onDoubleClick={handleDoubleClick}
       >
-        {label}
+        {isEditing ? (
+          <InlineEdit
+            value={label}
+            onCommit={handleEditCommit}
+            onCancel={handleEditCancel}
+            color={labelColor}
+            fontSize={fontSize}
+            style={{ minWidth: 30 }}
+          />
+        ) : (
+          label
+        )}
       </div>
     </EdgeLabelRenderer>
   );

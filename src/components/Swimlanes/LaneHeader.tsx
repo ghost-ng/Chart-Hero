@@ -4,6 +4,7 @@ import { GripVertical, Eye, Palette, Pencil, Trash2, EyeClosed, ChevronRight, Ch
 import { useSwimlaneStore, type SwimlaneOrientation } from '../../store/swimlaneStore';
 import { useUIStore } from '../../store/uiStore';
 import { useMenuPosition } from '../ContextMenu/menuUtils';
+import InlineEdit from '../shared/InlineEdit';
 
 // ---------------------------------------------------------------------------
 // Color palette for quick lane color changes
@@ -248,27 +249,11 @@ const LaneHeader: React.FC<LaneHeaderProps> = ({
     : rotDeg;                          // vertical lanes: apply angle directly
 
   const [isEditing, setIsEditing] = useState(false);
-  const [editValue, setEditValue] = useState(label);
   const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number } | null>(null);
   const [showColorPicker, setShowColorPicker] = useState(false);
   const colorPickerRef = useRef<HTMLDivElement>(null);
   const colorSwatchRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
   const updateLane = useSwimlaneStore((s) => s.updateLane);
-
-  useEffect(() => {
-    if (isEditing && inputRef.current) {
-      inputRef.current.focus();
-      inputRef.current.select();
-    }
-  }, [isEditing]);
-
-  // Sync editValue when label prop changes externally
-  useEffect(() => {
-    if (!isEditing) {
-      setEditValue(label);
-    }
-  }, [label, isEditing]);
 
   // Close color picker on outside click or Escape
   useEffect(() => {
@@ -298,31 +283,19 @@ const LaneHeader: React.FC<LaneHeaderProps> = ({
   }, []);
 
   const handleDoubleClick = useCallback(() => {
-    setEditValue(label);
     setIsEditing(true);
-  }, [label]);
+  }, []);
 
-  const commitEdit = useCallback(() => {
-    const trimmed = editValue.trim();
+  const handleEditCommit = useCallback((trimmed: string) => {
     if (trimmed && trimmed !== label) {
       updateLane(orientation, laneId, { label: trimmed });
-    } else {
-      setEditValue(label);
     }
     setIsEditing(false);
-  }, [editValue, label, orientation, laneId, updateLane]);
+  }, [label, orientation, laneId, updateLane]);
 
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === 'Enter') {
-        commitEdit();
-      } else if (e.key === 'Escape') {
-        setEditValue(label);
-        setIsEditing(false);
-      }
-    },
-    [commitEdit, label],
-  );
+  const handleEditCancel = useCallback(() => {
+    setIsEditing(false);
+  }, []);
 
   const handleDragStart = useCallback((e: React.MouseEvent) => {
     if (e.button !== 0) return; // Only left-click initiates drag
@@ -569,13 +542,13 @@ const LaneHeader: React.FC<LaneHeaderProps> = ({
 
         {/* Label or edit input */}
         {isEditing ? (
-          <input
-            ref={inputRef}
-            type="text"
-            value={editValue}
-            onChange={(e) => setEditValue(e.target.value)}
-            onBlur={commitEdit}
-            onKeyDown={handleKeyDown}
+          <InlineEdit
+            value={label}
+            onCommit={handleEditCommit}
+            onCancel={handleEditCancel}
+            color={textColor}
+            fontSize={fs}
+            fontWeight={600}
             style={editStyle}
           />
         ) : labelVisible ? (
@@ -595,7 +568,6 @@ const LaneHeader: React.FC<LaneHeaderProps> = ({
           darkMode={darkMode}
           onClose={() => setCtxMenu(null)}
           onStartEdit={() => {
-            setEditValue(label);
             setIsEditing(true);
           }}
         />,

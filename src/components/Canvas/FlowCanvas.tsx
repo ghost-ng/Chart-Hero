@@ -783,9 +783,9 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
   const onDoubleClick = useCallback(
     (event: React.MouseEvent) => {
       if (presentationMode) return;
-      // Only if we clicked on the pane (not on a node)
+      // Only if we clicked on the pane (not on a node, edge, or edge label)
       const target = event.target as HTMLElement;
-      if (target.closest('.react-flow__node')) return;
+      if (target.closest('.react-flow__node') || target.closest('.react-flow__edge') || target.closest('.react-flow__edgelabel') || target.closest('.edge-label-container')) return;
       const nodeId = createNodeAtPosition(event.clientX, event.clientY);
       // Start editing the label immediately
       setTimeout(() => setIsEditingNode(nodeId), 50);
@@ -1674,7 +1674,7 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
         selectionMode={SelectionMode.Partial}
         selectionKeyCode={null}
         panOnDrag={presentationMode ? true : drawingMode ? false : [1]}
-        deleteKeyCode={(presentationMode || drawingMode) ? null : "Delete"}
+        deleteKeyCode={null}
         multiSelectionKeyCode={(presentationMode || drawingMode) ? null : "Shift"}
         elevateNodesOnSelect={false}
         minZoom={0.3}

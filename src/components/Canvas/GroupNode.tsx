@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { Handle, Position, useReactFlow, type NodeProps } from '@xyflow/react';
 import { icons } from 'lucide-react';
 import chroma from 'chroma-js';
@@ -8,6 +8,7 @@ import { useStyleStore } from '../../store/styleStore';
 import { diagramStyles } from '../../styles/diagramStyles';
 import { resolveNodeStyle, resolveIconStyle } from '../../utils/themeResolver';
 import { StatusBadge } from './GenericShapeNode';
+import InlineEdit from '../shared/InlineEdit';
 import {
   CURSOR_RESIZE_WIDTH,
   CURSOR_RESIZE_HEIGHT,
@@ -85,36 +86,24 @@ const GroupNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   };
 
   const [isEditing, setIsEditing] = useState(false);
-  const [editValue, setEditValue] = useState(label);
   const [isRotating, setIsRotating] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (isEditing && inputRef.current) {
-      inputRef.current.focus();
-      inputRef.current.select();
-    }
-  }, [isEditing]);
+  const handleDoubleClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsEditing(true);
+  }, []);
 
-  const commitEdit = useCallback(() => {
-    const trimmed = editValue.trim();
+  const handleEditCommit = useCallback((trimmed: string) => {
     if (trimmed && trimmed !== label) {
       updateNodeData(id, { label: trimmed });
     }
     setIsEditing(false);
-  }, [editValue, label, id, updateNodeData]);
+  }, [label, id, updateNodeData]);
 
-  const handleDoubleClick = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    setEditValue(label);
-    setIsEditing(true);
-  }, [label]);
-
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') { commitEdit(); }
-    if (e.key === 'Escape') { setIsEditing(false); }
-  }, [commitEdit]);
+  const handleEditCancel = useCallback(() => {
+    setIsEditing(false);
+  }, []);
 
   // Drag-to-rotate logic
   const handleRotateStart = useCallback(
@@ -239,25 +228,21 @@ const GroupNode: React.FC<NodeProps> = ({ id, data, selected }) => {
       >
         {/* Group label at top — double-click to edit */}
         {isEditing ? (
-          <input
-            ref={inputRef}
-            type="text"
-            value={editValue}
-            onChange={(e) => setEditValue(e.target.value)}
-            onBlur={commitEdit}
-            onKeyDown={handleKeyDown}
+          <InlineEdit
+            value={label}
+            onCommit={handleEditCommit}
+            onCancel={handleEditCancel}
+            color={textColor}
+            fontSize={fontSize}
+            fontWeight={fontWeight}
+            fontFamily={fontFamily}
+            textAlign="left"
             style={{
               position: 'absolute',
               top: 2,
               left: 6,
-              fontSize,
-              fontWeight,
-              color: textColor,
-              fontFamily,
-              backgroundColor: 'transparent',
               border: `1px solid ${selectionColor || '#3b82f6'}`,
               borderRadius: 3,
-              outline: 'none',
               padding: '1px 3px',
               minWidth: 40,
               maxWidth: width - 16,

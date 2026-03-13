@@ -4,13 +4,12 @@
 
 import React, {
   useState,
-  useRef,
-  useEffect,
   useCallback,
   type ReactNode,
 } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { useFlowStore } from '../../store/flowStore';
+import InlineEdit from '../shared/InlineEdit';
 
 // ---------------------------------------------------------------------------
 // Style-override shape used by the node data
@@ -85,55 +84,25 @@ const BaseNode: React.FC<BaseNodeProps> = ({
 
   // ---- Inline editing state -----------------------------------------------
   const [isEditing, setIsEditing] = useState(false);
-  const [editValue, setEditValue] = useState(nodeData.label);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [isHovered, setIsHovered] = useState(false);
 
   const updateNodeData = useFlowStore((s) => s.updateNodeData);
-
-  // Sync edit value when label changes externally
-  useEffect(() => {
-    if (!isEditing) {
-      setEditValue(nodeData.label);
-    }
-  }, [nodeData.label, isEditing]);
-
-  // Focus textarea when entering edit mode
-  useEffect(() => {
-    if (isEditing && textareaRef.current) {
-      textareaRef.current.focus();
-      textareaRef.current.select();
-    }
-  }, [isEditing]);
-
-  // ---- Handlers -----------------------------------------------------------
 
   const handleDoubleClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     setIsEditing(true);
   }, []);
 
-  const commitEdit = useCallback(() => {
-    setIsEditing(false);
-    const trimmed = editValue.trim();
+  const handleEditCommit = useCallback((trimmed: string) => {
     if (trimmed !== nodeData.label) {
       updateNodeData(id, { label: trimmed || nodeData.label });
     }
-  }, [editValue, nodeData.label, id, updateNodeData]);
+    setIsEditing(false);
+  }, [nodeData.label, id, updateNodeData]);
 
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        commitEdit();
-      }
-      if (e.key === 'Escape') {
-        setEditValue(nodeData.label);
-        setIsEditing(false);
-      }
-    },
-    [commitEdit, nodeData.label],
-  );
+  const handleEditCancel = useCallback(() => {
+    setIsEditing(false);
+  }, []);
 
   // ---- Resolved styles ----------------------------------------------------
 
@@ -179,20 +148,15 @@ const BaseNode: React.FC<BaseNodeProps> = ({
         style={{ zIndex: 1 }}
       >
         {isEditing ? (
-          <textarea
-            ref={textareaRef}
-            className="w-full text-center bg-transparent border-none outline-none resize-none"
-            style={{
-              color: textColor,
-              fontSize,
-              fontFamily,
-              lineHeight: 1.3,
-            }}
-            value={editValue}
-            onChange={(e) => setEditValue(e.target.value)}
-            onBlur={commitEdit}
-            onKeyDown={handleKeyDown}
-            rows={Math.max(1, Math.ceil(editValue.length / 18))}
+          <InlineEdit
+            value={nodeData.label}
+            onCommit={handleEditCommit}
+            onCancel={handleEditCancel}
+            multiline
+            color={textColor}
+            fontSize={fontSize}
+            fontFamily={fontFamily}
+            className="w-full bg-transparent"
           />
         ) : (
           <span
