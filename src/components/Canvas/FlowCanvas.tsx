@@ -941,14 +941,20 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
     if (!nodeMenu) return;
     const original = useFlowStore.getState().getNode(nodeMenu.nodeId);
     if (!original) return;
+    // Strip group memberships so the duplicate is independent
+    const { linkGroupId: _lg, groupId: _gid, ...cleanData } = original.data;
     const newNode: FlowNode = {
       id: nextId(),
       type: original.type,
       position: {
-        x: original.position.x + 30,
-        y: original.position.y + 30,
+        x: (original.parentId
+          ? original.position.x + (nodes.find(n => n.id === original.parentId)?.position.x ?? 0)
+          : original.position.x) + 30,
+        y: (original.parentId
+          ? original.position.y + (nodes.find(n => n.id === original.parentId)?.position.y ?? 0)
+          : original.position.y) + 30,
       },
-      data: { ...original.data },
+      data: cleanData,
     };
     addNode(newNode);
   }, [nodeMenu, addNode]);

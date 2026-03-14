@@ -394,11 +394,20 @@ const App: React.FC = () => {
       const original = nodes.find((n) => n.id === id);
       if (!original) continue;
       const newId = `node_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+      // Strip group memberships so the duplicate is independent
+      const { linkGroupId: _lg, groupId: _gid, ...cleanData } = original.data;
       addNode({
         id: newId,
         type: original.type,
-        position: { x: original.position.x + 30, y: original.position.y + 30 },
-        data: { ...original.data },
+        position: {
+          x: (original.parentId
+            ? original.position.x + (nodes.find(n => n.id === original.parentId)?.position.x ?? 0)
+            : original.position.x) + 30,
+          y: (original.parentId
+            ? original.position.y + (nodes.find(n => n.id === original.parentId)?.position.y ?? 0)
+            : original.position.y) + 30,
+        },
+        data: cleanData,
       });
       newIds.push(newId);
     }
@@ -563,8 +572,9 @@ const App: React.FC = () => {
     for (const node of clipboard.nodes) {
       const newId = `node_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
       idMap.set(node.id, newId);
-      // Deep-clone pucks with new IDs
-      const data = { ...node.data };
+      // Deep-clone pucks with new IDs, strip group memberships
+      const { linkGroupId: _lg, groupId: _gid, ...restData } = node.data;
+      const data = { ...restData };
       if (data.statusIndicators) {
         data.statusIndicators = data.statusIndicators.map((p: StatusIndicator) => ({
           ...p,
